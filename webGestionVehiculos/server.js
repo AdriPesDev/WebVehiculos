@@ -5,6 +5,7 @@ const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const multer = require("multer");
+const crypto = require("crypto");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -16,7 +17,7 @@ const requestsFile = path.join(dataFolder, "membership_requests.json");
 const tripsFile = path.join(dataFolder, "trips.json");
 const surveysFile = path.join(dataFolder, "surveys.json");
 
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173", credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -40,7 +41,7 @@ const uploadInvoice = multer({
 });
 app.use(
   session({
-    secret: "nethive-vehiculos-secret",
+    secret: process.env.SESSION_SECRET || "nethive-vehiculos-secret",
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 1000 * 60 * 60 * 24 },
@@ -49,18 +50,25 @@ app.use(
 
 // ── Data bootstrap ─────────────────────────────────────────────────────────
 
+function generateRandomPassword(length = 16) {
+  return crypto.randomBytes(length).toString("hex").slice(0, length);
+}
+
 function ensureDataFiles() {
   if (!fs.existsSync(dataFolder)) {
     fs.mkdirSync(dataFolder, { recursive: true });
   }
 
   if (!fs.existsSync(usersFile)) {
+    const superadminPassword = process.env.SUPERADMIN_PASSWORD || generateRandomPassword();
+    const adminPassword = process.env.ADMIN_PASSWORD || generateRandomPassword();
+
     const defaultUsers = [
       {
         id: "U-SUPERADMIN-001",
         name: "Superadministrador Nethive",
         email: "superadmin@nethive.com",
-        password: bcrypt.hashSync("SuperAdmin2026!", 10),
+        password: bcrypt.hashSync(superadminPassword, 10),
         role: "superadmin",
         company_id: null,
         active: true,
@@ -70,7 +78,7 @@ function ensureDataFiles() {
         id: "U-ADMIN-001",
         name: "Admin Nethive",
         email: "admin@nethive.com",
-        password: bcrypt.hashSync("Admin2026!", 10),
+        password: bcrypt.hashSync(adminPassword, 10),
         role: "admin",
         company_id: "C-NETHIVE-001",
         active: true,
@@ -78,6 +86,21 @@ function ensureDataFiles() {
       },
     ];
     fs.writeFileSync(usersFile, JSON.stringify(defaultUsers, null, 2), "utf8");
+
+    // Print credentials only on first initialization
+    if (!process.env.SUPERADMIN_PASSWORD || !process.env.ADMIN_PASSWORD) {
+      console.log("\n" + "=".repeat(60));
+      console.log("🔐 INITIAL CREDENTIALS (generated randomly)");
+      console.log("=".repeat(60));
+      console.log("Superadmin Email: superadmin@nethive.com");
+      console.log("Superadmin Password:", superadminPassword);
+      console.log("");
+      console.log("Admin Email: admin@nethive.com");
+      console.log("Admin Password:", adminPassword);
+      console.log("=".repeat(60));
+      console.log("💡 Save these credentials in a secure place!");
+      console.log("💡 Update .env file with these passwords for consistency.\n");
+    }
   }
 
   if (!fs.existsSync(companiesFile)) {
@@ -926,7 +949,7 @@ app.post("/api/vehicle/checkin", ensureAuthenticated, ensureCompanyAdmin, (req, 
     if (template) {
       const kmQuestion = template.questions.find((q) => q.type === "km");
       if (kmQuestion && survey.answers[kmQuestion.id] != null) {
-        const kmFromSurvey = parseInt(survey.answers[kmQuestion.id], 10);
+        const kmFromSurvey = Number.parseInt(survey.answers[kmQuestion.id], 10);
         if (!isNaN(kmFromSurvey)) {
           tripKm = kmFromSurvey;
         }
