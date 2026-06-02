@@ -1,0 +1,43 @@
+<%- include('partials/header', { title: 'Nethive Gestión de Vehículos' }) %>
+
+<section class="hero">
+  <div>
+    <h1 class="hero-title">Gestión de flota y distribución</h1>
+    <p>Plataforma centralizada para empresas de logística. Controla tus vehículos, gestiona tus empleados y optimiza tus rutas de reparto.</p>
+    <div class="hero-actions">
+      <% if (!currentUser) { %>
+      <a class="button button-primary" href="/login">Iniciar sesión</a>
+      <a class="button button-outline" href="/register">Registrarse</a>
+      <% } else { %>
+      <a class="button button-primary" href="/dashboard">Panel</a>
+      <% } %>
+    </div>
+  </div>
+  <div class="hero-card">
+    <h2>Plataforma Nethive</h2>
+    <p>Solución profesional para gestionar la flota de tu empresa con control total de empleados y vehículos.</p>
+    <ul style="list-style: none; padding: 0; display: grid; gap: 0.6rem; margin-top: 1rem;">
+      <li>✅ Gestión de empresas</li>
+      <li>✅ Control de vehículos</li>
+      <li>✅ Historial de viajes</li>
+      <li>✅ Mantenimiento programado</li>
+    </ul>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature-card">
+    <h3>🏢 Para empresas</h3>
+    <p>Crea tu propia empresa y gestiona tu flota de distribución con panel administrativo completo.</p>
+  </div>
+  <div class="feature-card">
+    <h3>👷 Para empleados</h3>
+    <p>Únete a una empresa y gestiona vehículos en tiempo real, registrando salidas y entradas.</p>
+  </div>
+  <div class="feature-card">
+    <h3>🚐 Marca Nethive</h3>
+    <p>Interfaz profesional y segura con identidad corporativa de Nethive Soluciones Informáticas.</p>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

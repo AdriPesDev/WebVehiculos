@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title || 'Nethive Gestión de Vehículos' %></title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-content">
+        <div class="brand">
+          <strong>Nethive</strong> Soluciones Informáticas
+        </div>
+        <nav>
+          <a href="/">Inicio</a>
+          <% if (!currentUser) { %>
+          <a href="/login">Iniciar sesión</a>
+          <a href="/register">Registro</a>
+          <% } else { %>
+          <a href="/dashboard">Panel</a>
+          <form action="/logout" method="post" class="inline-form">
+            <button type="submit" class="button button-secondary">Cerrar sesión</button>
+          </form>
+          <% } %>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container">
+      <% if (flash) { %>
+      <div class="alert alert-<%= flash.type %>"><%= flash.message %></div>
+      <% } %>
+      <%= body %>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <p>© 2026 Nethive Soluciones Informáticas - Gestión de reparto y flota.</p>
+      </div>
+    </footer>
+  </body>
+</html>

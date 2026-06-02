@@ -1,0 +1,215 @@
+<%- include('partials/header', { title: 'Panel administrativo | Nethive' }) %>
+
+<section class="dashboard">
+  <% const normalizeStates = (vehicle) => vehicle.states || (vehicle.status ? [vehicle.status] : ['disponible']); %>
+  <div class="dashboard-header">
+    <h2>Panel administrativo</h2>
+    <p>Empresa: <strong><%= company.name %></strong></p>
+    <div class="dashboard-actions">
+      <button class="button button-primary" onclick="openDrawer('vehicle')">➕ Añadir vehículo</button>
+      <button class="button button-outline" onclick="openDrawer('employee')">👤 Añadir empleado</button>
+    </div>
+  </div>
+
+  <div class="admin-cards">
+    <div class="admin-card admin-card-vehicles">
+      <h3>🚗 Vehículos</h3>
+      <span class="stat-number"><%= companyVehicles.length %></span>
+      <p>en flota</p>
+    </div>
+    <div class="admin-card admin-card-employees">
+      <h3>👥 Empleados</h3>
+      <span class="stat-number"><%= companyUsers.filter((u) => u.role === 'empleado').length %></span>
+      <p>empleados activos</p>
+    </div>
+    <div class="admin-card admin-card-requests">
+      <h3>⏳ Solicitudes</h3>
+      <span class="stat-number"><%= pendingRequests.length %></span>
+      <p>por revisar</p>
+    </div>
+  </div>
+
+  <% if (pendingRequests.length > 0) { %>
+  <div class="table-section">
+    <h3>Solicitudes de membresía pendientes</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% 
+          const users = require('fs').existsSync(require('path').join(__dirname, '../data/users.json')) 
+            ? JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '../data/users.json'), 'utf8'))
+            : [];
+          pendingRequests.forEach((request) => {
+            const requesterUser = users.find((u) => u.id === request.user_id);
+        %>
+        <tr>
+          <td><%= requesterUser?.name || 'Desconocido' %></td>
+          <td><%= requesterUser?.email || 'N/A' %></td>
+          <td><%= new Date(request.createdAt).toLocaleDateString('es-ES') %></td>
+          <td>
+            <form action="/admin/request/<%= request.id %>/approve" method="post" style="display: inline;">
+              <button type="submit" class="button button-success">Aprobar</button>
+            </form>
+            <form action="/admin/request/<%= request.id %>/reject" method="post" style="display: inline;">
+              <button type="submit" class="button button-danger">Rechazar</button>
+            </form>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <div class="table-section">
+    <h3>Vehículos de la empresa</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Modelo</th>
+          <th>Matricula</th>
+          <th>Capacidad</th>
+          <th>Estado</th>
+          <th>Ubicación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% companyVehicles.forEach((vehicle) => {
+             const states = normalizeStates(vehicle);
+             const badgeClass = (states.includes('mantenimiento') || states.includes('maintenance'))
+               ? 'badge-danger'
+               : (states.includes('en_uso') || states.includes('ocupado'))
+               ? 'badge-warning'
+               : 'badge-success';
+        %>
+        <tr>
+          <td><%= vehicle.model %></td>
+          <td><%= vehicle.plate %></td>
+          <td><%= vehicle.capacity %></td>
+          <td>
+            <span class="badge <%= badgeClass %>">
+              <%= states.join(', ') %>
+            </span>
+          </td>
+          <td><%= vehicle.location %></td>
+          <td>
+            <a href="/vehicle/<%= vehicle.id %>" class="button button-small button-outline">Detalle</a>
+            <% if (states.includes('mantenimiento') || states.includes('maintenance')) { %>
+              <form action="/admin/maintenance/end" method="post" style="display: inline;">
+                <input type="hidden" name="vehicleId" value="<%= vehicle.id %>" />
+                <button type="submit" class="button button-small">Acabar mant.</button>
+              </form>
+            <% } else { %>
+              <form action="/admin/maintenance/start" method="post" style="display: inline;">
+                <input type="hidden" name="vehicleId" value="<%= vehicle.id %>" />
+                <button type="submit" class="button button-small">Mantenimiento</button>
+              </form>
+            <% } %>
+            <form action="/admin/vehicle/delete" method="post" style="display: inline;">
+              <input type="hidden" name="vehicleId" value="<%= vehicle.id %>" />
+              <button type="submit" class="button button-small button-danger">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-section">
+    <h3>Empleados de la empresa</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Rol</th>
+          <th>Actividad</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% companyUsers.filter((u) => u.role !== 'admin').forEach((user) => { %>
+        <tr>
+          <td><%= user.name %></td>
+          <td><%= user.email %></td>
+          <td><span class="badge"><%= user.role %></span></td>
+          <td><%= user.active ? 'Activo' : 'Inactivo' %></td>
+          <td>
+            <% if (user.role === 'empleado') { %>
+              <form action="/admin/employee/remove" method="post" style="display: inline;">
+                <input type="hidden" name="userId" value="<%= user.id %>" />
+                <button type="submit" class="button button-small button-danger">Quitar</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<dialog id="drawer" class="drawer" aria-labelledby="drawer-title">
+  <div class="drawer-header">
+    <h3 id="drawer-title">Añadir a la empresa</h3>
+    <button class="drawer-close" onclick="closeDrawer()" aria-label="Cerrar">✕</button>
+  </div>
+
+  <div class="drawer-tabs">
+    <button id="tab-vehicle" class="drawer-tab active" onclick="switchTab('vehicle')">🚗 Vehículo</button>
+    <button id="tab-employee" class="drawer-tab" onclick="switchTab('employee')">👤 Empleado</button>
+  </div>
+
+  <div class="drawer-body">
+    <div id="panel-vehicle" class="drawer-panel">
+      <form action="/admin/vehicle/add" method="post" class="auth-form">
+        <label>
+          Modelo
+          <input type="text" name="model" required placeholder="Ej: Furgoneta Sprinter" />
+        </label>
+        <label>
+          Matrícula
+          <input type="text" name="plate" required placeholder="Ej: 1234 ABC" />
+        </label>
+        <label>
+          Capacidad
+          <input type="text" name="capacity" required placeholder="Ej: 1.5t" />
+        </label>
+        <label>
+          Ubicación
+          <input type="text" name="location" required placeholder="Ej: Madrid" />
+        </label>
+        <button type="submit" class="button button-primary">Agregar vehículo</button>
+      </form>
+    </div>
+
+    <div id="panel-employee" class="drawer-panel" hidden>
+      <form action="/admin/employee/add" method="post" class="auth-form">
+        <label>
+          Nombre completo
+          <input type="text" name="name" required placeholder="Nombre y apellido" />
+        </label>
+        <label>
+          Correo electrónico
+          <input type="email" name="email" required placeholder="usuario@empresa.com" />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" name="password" required placeholder="Mínimo 8 caracteres" minlength="8" />
+        </label>
+        <button type="submit" class="button button-primary">Agregar empleado</button>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<%- include('partials/footer') %>

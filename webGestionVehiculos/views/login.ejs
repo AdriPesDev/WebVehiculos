@@ -1,0 +1,19 @@
+<%- include('partials/header', { title: 'Iniciar sesión - Nethive' }) %>
+
+<section class="auth-card">
+  <h2>Iniciar sesión</h2>
+  <form action="/login" method="post" class="auth-form">
+    <label>
+      Correo electrónico
+      <input type="email" name="email" required placeholder="usuario@nethive.com" />
+    </label>
+    <label>
+      Contraseña
+      <input type="password" name="password" required placeholder="Contraseña" />
+    </label>
+    <button type="submit" class="button button-primary">Entrar</button>
+    <p>¿No tienes cuenta? <a href="/register">Regístrate</a></p>
+  </form>
+</section>
+
+<%- include('partials/footer') %>
