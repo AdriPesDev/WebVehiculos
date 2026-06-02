@@ -165,6 +165,9 @@ function ensureDataFiles() {
   }
 }
 
+// Initialize data files IMMEDIATELY after function definition
+ensureDataFiles();
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function loadJson(filePath) {
@@ -1061,7 +1064,6 @@ app.get("*", (_req, res) => {
 
 // ── Start ────────────────────────────────────────────────────────────────────
 
-ensureDataFiles();
 app.listen(port, () => {
   console.log(`API iniciada en http://localhost:${port}`);
 });
