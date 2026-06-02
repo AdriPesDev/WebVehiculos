@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const path = require("node:path");
 const fs = require("node:fs");
@@ -5,7 +7,7 @@ const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const multer = require("multer");
-const crypto = require("crypto");
+const crypto = require("node:crypto");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -949,7 +951,7 @@ app.post("/api/vehicle/checkin", ensureAuthenticated, ensureCompanyAdmin, (req, 
     if (template) {
       const kmQuestion = template.questions.find((q) => q.type === "km");
       if (kmQuestion && survey.answers[kmQuestion.id] != null) {
-        const kmFromSurvey = parseInt(survey.answers[kmQuestion.id], 10);
+        const kmFromSurvey = Number.parseInt(survey.answers[kmQuestion.id], 10);
         if (!isNaN(kmFromSurvey)) {
           tripKm = kmFromSurvey;
         }
