@@ -1,0 +1,23 @@
+<%- include('partials/header', { title: 'Registro - Nethive' }) %>
+
+<section class="auth-card">
+  <h2>Registro de usuario</h2>
+  <form action="/register" method="post" class="auth-form">
+    <label>
+      Nombre completo
+      <input type="text" name="name" required placeholder="Nombre y apellido" />
+    </label>
+    <label>
+      Correo electrónico
+      <input type="email" name="email" required placeholder="usuario@nethive.com" />
+    </label>
+    <label>
+      Contraseña
+      <input type="password" name="password" required placeholder="Contraseña" minlength="8" />
+    </label>
+    <button type="submit" class="button button-primary">Crear cuenta</button>
+    <p>¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p>
+  </form>
+</section>
+
+<%- include('partials/footer') %>
