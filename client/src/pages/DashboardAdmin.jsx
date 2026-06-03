@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { api } from '../services/api';
@@ -27,16 +27,18 @@ export default function DashboardAdmin({ data: initialData }) {
   const [deleteModal, setDeleteModal] = useState(null);
   const [removeEmpModal, setRemoveEmpModal] = useState(null);
 
-  async function loadSurveys() {
+  const loadSurveys = useCallback(async () => {
     const res = await api.getSurveys();
     if (res.surveys) {
       setCompanySurveys(res.surveys);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    loadSurveys();
-  }, []);
+    (async () => {
+      await loadSurveys();
+    })();
+  }, [loadSurveys]);
 
   async function confirmApprove(role) {
     const { requestId, userName } = approveModal;
@@ -178,7 +180,7 @@ export default function DashboardAdmin({ data: initialData }) {
           </div>
           <div className="admin-card admin-card-employees">
             <h3>👥 Empleados</h3>
-            <span className="stat-number">{companyUsers.filter(u => u.role === 'empleado').length}</span>
+            <span className="stat-number">{companyUsers.filter(u => u.rol === 'empleado').length}</span>
             <p>empleados activos</p>
           </div>
           <div className="admin-card admin-card-requests">
@@ -280,12 +282,12 @@ export default function DashboardAdmin({ data: initialData }) {
               )}
               {companyUsers.map(u => (
                 <tr key={u.id}>
-                  <td>{u.name}</td>
+                  <td>{u.nombre}</td>
                   <td>{u.email}</td>
-                  <td><span className="badge">{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</span></td>
+                  <td><span className="badge">{u.rol.charAt(0).toUpperCase() + u.rol.slice(1)}</span></td>
                   <td>
-                    {u.role === 'empleado' && (
-                      <button className="button button-small button-danger" onClick={() => setRemoveEmpModal({ userId: u.id, userName: u.name })}>
+                    {u.rol === 'empleado' && (
+                      <button className="button button-small button-danger" onClick={() => setRemoveEmpModal({ userId: u.id, userName: u.nombre })}>
                         Quitar
                       </button>
                     )}
