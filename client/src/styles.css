@@ -491,6 +491,10 @@ nav a:hover::after {
   color: var(--muted);
 }
 
+.admin-card .button {
+  margin-top: 1.5rem;
+}
+
 .stat-number {
   font-size: 2.5rem;
   font-weight: 800;
