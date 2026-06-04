@@ -1,4 +1,5 @@
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useState } from 'react';
+import { api } from '../services/api';
 import Layout from '../components/Layout';
 import DashboardAdmin from './DashboardAdmin';
 import DashboardEmpleado from './DashboardEmpleado';
@@ -6,14 +7,25 @@ import DashboardSuperadmin from './DashboardSuperadmin';
 import DashboardNoCompany from './DashboardNoCompany';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
 
-  if (!user) return <Layout><p className="alert alert-info">Cargando...</p></Layout>;
+  useEffect(() => {
+    api.dashboard()
+      .then(res => {
+        if (res.error) setError(res.error);
+        else setData(res);
+      })
+      .catch(() => setError('Error al cargar el panel.'));
+  }, []);
 
-  if (user.rol === 'admin')      return <DashboardAdmin />;
-  if (user.rol === 'empleado')   return <DashboardEmpleado />;
-  if (user.rol === 'superadmin') return <DashboardSuperadmin />;
-  if (user.rol === 'sin_empresa') return <DashboardNoCompany />;
+  if (error) return <Layout><p className="alert alert-error">{error}</p></Layout>;
+  if (!data) return <Layout><p className="alert alert-info">Cargando panel...</p></Layout>;
+
+  if (data.role === 'admin')      return <DashboardAdmin data={data} />;
+  if (data.role === 'empleado')   return <DashboardEmpleado data={data} />;
+  if (data.role === 'superadmin') return <DashboardSuperadmin data={data} />;
+  if (data.role === 'sin_empresa') return <DashboardNoCompany />;
 
   return <Layout><p>Rol no reconocido.</p></Layout>;
 }

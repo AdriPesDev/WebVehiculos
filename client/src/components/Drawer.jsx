@@ -3,12 +3,13 @@ import PropTypes from 'prop-types';
 import { api } from '../services/api';
 import Alert from './Alert';
 
-export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded, initialTab = 'vehicle', isSuperadmin = false, companies = [], companyLocation = null }) {
+export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded, initialTab = 'vehicle', isSuperadmin = false, companies = [] }) {
   // Vehicle form state
   const [vCompanyId, setVCompanyId] = useState('');
   const [vModel, setVModel] = useState('');
-  const [vBrand, setVBrand] = useState('');
   const [vPlate, setVPlate] = useState('');
+  const [vCapacity, setVCapacity] = useState('');
+  const [vLocation, setVLocation] = useState('');
   const [vError, setVError] = useState(null);
   const [vLoading, setVLoading] = useState(false);
 
@@ -22,7 +23,7 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
   const [eLoading, setELoading] = useState(false);
 
   function resetVehicleForm() {
-    setVModel(''); setVPlate(''); setVBrand('');
+    setVModel(''); setVPlate(''); setVCapacity(''); setVLocation('');
   }
 
   function resetEmployeeForm() {
@@ -36,30 +37,18 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
       setVError('Selecciona una empresa.');
       return;
     }
-    if (!vModel || !vBrand || !vPlate) {
-      setVError('Completa todos los campos requeridos.');
-      return;
-    }
     setVLoading(true);
-    const body = { modelo: vModel, marca: vBrand, matricula: vPlate, ubicacion: companyLocation || 'Sin ubicación' };
+    const body = { model: vModel, plate: vPlate, capacity: vCapacity, location: vLocation };
     if (isSuperadmin) body.companyId = vCompanyId;
-    console.log('Adding vehicle with body:', body);
-    try {
-      const res = await api.addVehicle(body);
-      console.log('Vehicle response:', res);
-      setVLoading(false);
-      if (res.ok) {
-        resetVehicleForm();
-        setVCompanyId('');
-        onVehicleAdded(res.vehicle);
-        onClose();
-      } else {
-        setVError(res.error || 'Error al añadir vehículo.');
-      }
-    } catch (err) {
-      console.error('Error adding vehicle:', err);
-      setVError(err.message || 'Error al añadir vehículo.');
-      setVLoading(false);
+    const res = await api.addVehicle(body);
+    setVLoading(false);
+    if (res.ok) {
+      resetVehicleForm();
+      setVCompanyId('');
+      onVehicleAdded(res.vehicle);
+      onClose();
+    } else {
+      setVError(res.error || 'Error al añadir vehículo.');
     }
   }
 
@@ -132,16 +121,20 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
                 </div>
               )}
               <div className="field">
+                <label htmlFor="v-model">Modelo</label>
+                <input id="v-model" value={vModel} onChange={e => setVModel(e.target.value)} required placeholder="Ej: Furgoneta Sprinter" />
+              </div>
+              <div className="field">
                 <label htmlFor="v-plate">Matrícula</label>
                 <input id="v-plate" value={vPlate} onChange={e => setVPlate(e.target.value)} required placeholder="Ej: 1234 ABC" />
               </div>
               <div className="field">
-                <label htmlFor="v-brand">Marca</label>
-                <input id="v-brand" value={vBrand} onChange={e => setVBrand(e.target.value)} required placeholder="Ej: Mercedes, Volkswagen, Ford" />
+                <label htmlFor="v-capacity">Capacidad</label>
+                <input id="v-capacity" value={vCapacity} onChange={e => setVCapacity(e.target.value)} required placeholder="Ej: 1.5t" />
               </div>
               <div className="field">
-                <label htmlFor="v-model">Modelo</label>
-                <input id="v-model" value={vModel} onChange={e => setVModel(e.target.value)} required placeholder="Ej: Sprinter, Transporter" />
+                <label htmlFor="v-location">Ubicación</label>
+                <input id="v-location" value={vLocation} onChange={e => setVLocation(e.target.value)} required placeholder="Ej: Madrid" />
               </div>
               <button type="submit" className="button button-primary" disabled={vLoading}>
                 {vLoading ? 'Añadiendo...' : 'Agregar vehículo'}
@@ -214,5 +207,4 @@ Drawer.propTypes = {
   onEmployeeAdded: PropTypes.func.isRequired,
   isSuperadmin: PropTypes.bool,
   companies: PropTypes.array,
-  companyLocation: PropTypes.string,
 };

@@ -9,7 +9,7 @@ export default function DashboardNoCompany() {
     <Layout>
       <section className="dashboard">
         <div className="dashboard-header">
-          <h2>Bienvenido, {user?.nombre}</h2>
+          <h2>Bienvenido, {user?.name}</h2>
           <p>Aún no perteneces a ninguna empresa.</p>
         </div>
 

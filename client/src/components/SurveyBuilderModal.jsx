@@ -131,6 +131,10 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
   if (!open) return null;
 
   const selectedVehicle = companyVehicles.find((v) => v.id === selectedVehicleId);
+  const getTypeName = (type) => {
+    const types = { text: 'Texto libre', number: 'Número', km: 'Kilómetros', radio: 'Opciones' };
+    return types[type] || type;
+  };
 
   return (
     <>

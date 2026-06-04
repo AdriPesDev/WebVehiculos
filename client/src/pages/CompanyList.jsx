@@ -11,15 +11,10 @@ export default function CompanyList() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.companyPublicList()
+    api.companyList()
       .then(res => {
-        console.log('Companies:', res);
         if (res.error) setFlash({ type: 'error', message: res.error });
-        else setCompanies(Array.isArray(res) ? res : res.empresas || res.companies || []);
-      })
-      .catch(err => {
-        console.error('Error loading companies:', err);
-        setFlash({ type: 'error', message: 'Error al cargar empresas' });
+        else setCompanies(res.companies);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -58,11 +53,11 @@ export default function CompanyList() {
                 </thead>
                 <tbody>
                   {companies.map(c => (
-                    <tr key={c.id || c.id_empresa}>
-                      <td>{c.nombre || c.name}</td>
+                    <tr key={c.id}>
+                      <td>{c.name}</td>
                       <td>{c.email}</td>
                       <td>
-                        <button className="button button-small button-primary" onClick={() => handleJoin(c.id || c.id_empresa)}>
+                        <button className="button button-small button-primary" onClick={() => handleJoin(c.id)}>
                           Solicitar unirse
                         </button>
                       </td>
