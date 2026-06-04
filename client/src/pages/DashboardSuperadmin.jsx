@@ -88,7 +88,7 @@ export default function DashboardSuperadmin({ data: initialData }) {
     const res = await api.removeEmployee(userId);
     if (res.ok) {
       setFlash({ type: 'success', message: `${userName} ha sido desvinculado de su empresa.` });
-      setData(d => ({ ...d, users: d.users.map(u => u.id === userId ? { ...u, role: 'sin_empresa', company_id: null } : u) }));
+      setData(d => ({ ...d, users: d.users.map(u => u.id === userId ? { ...u, rol: 'sin_empresa', company_id: null } : u) }));
     } else {
       setFlash({ type: 'error', message: res.error });
     }
@@ -191,7 +191,7 @@ export default function DashboardSuperadmin({ data: initialData }) {
                   <td>{c.name}</td>
                   <td>{c.email}</td>
                   <td>{vehicles.filter(v => v.company_id === c.id).length}</td>
-                  <td>{users.filter(u => u.company_id === c.id && u.role === 'empleado').length}</td>
+                  <td>{users.filter(u => u.company_id === c.id && u.rol === 'empleado').length}</td>
                   <td>
                     <button
                       className="button button-small button-danger"
@@ -215,11 +215,11 @@ export default function DashboardSuperadmin({ data: initialData }) {
               </tr>
             </thead>
             <tbody>
-              {users.filter(u => u.role !== 'superadmin' && u.company_id).length === 0 && (
+              {users.filter(u => u.rol !== 'superadmin' && u.company_id).length === 0 && (
                 <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay trabajadores registrados.</td></tr>
               )}
               {users
-                .filter(u => u.role !== 'superadmin' && u.company_id)
+                .filter(u => u.rol !== 'superadmin' && u.company_id)
                 .sort((a, b) => {
                   const ca = companies.find(c => c.id === a.company_id)?.name || '';
                   const cb = companies.find(c => c.id === b.company_id)?.name || '';
@@ -229,14 +229,14 @@ export default function DashboardSuperadmin({ data: initialData }) {
                 const company = companies.find(c => c.id === u.company_id);
                 return (
                   <tr key={u.id}>
-                    <td>{u.name}</td>
+                    <td>{u.nombre}</td>
                     <td>{u.email}</td>
                     <td>{company?.name || '—'}</td>
-                    <td><span className="badge">{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</span></td>
+                    <td><span className="badge">{u.rol.charAt(0).toUpperCase() + u.rol.slice(1)}</span></td>
                     <td>
                       <button
                         className="button button-small button-danger"
-                        onClick={() => setRemoveWorkerModal({ userId: u.id, userName: u.name })}
+                        onClick={() => setRemoveWorkerModal({ userId: u.id, userName: u.nombre })}
                       >
                         Quitar
                       </button>

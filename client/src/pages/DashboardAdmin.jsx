@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import PropTypes from 'prop-types';
 import { api } from '../services/api';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
@@ -8,8 +7,8 @@ import Alert from '../components/Alert';
 import Drawer from '../components/Drawer';
 import SurveyBuilderModal from '../components/SurveyBuilderModal';
 
-export default function DashboardAdmin({ data: initialData }) {
-  const [data, setData] = useState(initialData);
+export default function DashboardAdmin() {
+  const [data, setData] = useState(null);
   const [flash, setFlash] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState('vehicle');
@@ -22,15 +21,37 @@ export default function DashboardAdmin({ data: initialData }) {
   const [maintLoading, setMaintLoading] = useState(false);
   const [endMaintModal, setEndMaintModal] = useState(null);
   const [invoiceFile, setInvoiceFile] = useState(null);
-  const { company, companyVehicles, companyUsers, pendingRequests, activeTrips = [] } = data;
+
+  const company = data?.company || { name: 'Cargando...' };
+  const companyVehicles = data?.companyVehicles || [];
+  const companyUsers = data?.companyUsers || [];
+  const pendingRequests = data?.pendingRequests || [];
+  const activeTrips = data?.activeTrips || [];
 
   const [deleteModal, setDeleteModal] = useState(null);
   const [removeEmpModal, setRemoveEmpModal] = useState(null);
 
+  useEffect(() => {
+    api.dashboard()
+      .then(res => {
+        console.log('DashboardAdmin data:', res);
+        setData(res || {});
+      })
+      .catch(err => {
+        console.error('Failed to load dashboard:', err);
+        setData({});
+      });
+  }, []);
+
   const loadSurveys = useCallback(async () => {
-    const res = await api.getSurveys();
-    if (res.surveys) {
-      setCompanySurveys(res.surveys);
+    try {
+      const res = await api.getSurveys();
+      if (res.surveys) {
+        setCompanySurveys(res.surveys);
+      }
+    } catch {
+      // Surveys endpoint no disponible en la API, continuar sin ellas
+      setCompanySurveys([]);
     }
   }, []);
 
@@ -39,6 +60,8 @@ export default function DashboardAdmin({ data: initialData }) {
       await loadSurveys();
     })();
   }, [loadSurveys]);
+
+  if (!data) return <Layout><p className="alert alert-info">Cargando panel...</p></Layout>;
 
   async function confirmApprove(role) {
     const { requestId, userName } = approveModal;
@@ -86,7 +109,7 @@ export default function DashboardAdmin({ data: initialData }) {
     const { vehicleId } = endMaintModal;
     setEndMaintModal(null);
     setMaintLoading(true);
-    const res = await api.endMaintenance(vehicleId, invoiceFile);
+    const res = await api.endMaintenance(vehicleId);
     setInvoiceFile(null);
     setMaintLoading(false);
     if (res.ok) {
@@ -104,7 +127,7 @@ export default function DashboardAdmin({ data: initialData }) {
     const res = await api.deleteVehicle(vehicleId);
     if (res.ok) {
       setFlash({ type: 'success', message: 'Vehículo eliminado.' });
-      setData(d => ({ ...d, companyVehicles: d.companyVehicles.filter(v => v.id !== vehicleId) }));
+      setData(d => ({ ...d, companyVehicles: d.companyVehicles.filter(v => (v.id || v.id_vehiculo) !== vehicleId) }));
     } else {
       setFlash({ type: 'error', message: res.error });
     }
@@ -222,41 +245,48 @@ export default function DashboardAdmin({ data: initialData }) {
           <table>
             <thead>
               <tr>
-                <th>Modelo</th><th>Matrícula</th><th>Capacidad</th><th>Estado</th><th>Ubicación</th><th>Acciones</th>
+                <th>Matrícula</th><th>Marca</th><th>Modelo</th><th>Estado</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {companyVehicles.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay vehículos en la flota todavía.</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay vehículos en la flota todavía.</td></tr>
               )}
               {companyVehicles.map(v => {
-                const states = v.states || [];
-                const inMaint = states.includes('mantenimiento') || states.includes('maintenance');
+                const vehicleId = v.id || v.id_vehiculo;
+                const estado = v.estado || v.states || 'disponible';
+                const inMaint = Array.isArray(estado) ? estado.includes('mantenimiento') : estado === 'mantenimiento';
+                let estadoClass = 'badge-success';
+                if (inMaint) {
+                  estadoClass = 'badge-danger';
+                } else if (Array.isArray(estado) ? estado.includes('en_uso') || estado.includes('ocupado') : estado === 'en_uso' || estado === 'ocupado') {
+                  estadoClass = 'badge-warning';
+                }
+                const estadoDisplay = Array.isArray(estado) ? estado.map(s => s.replaceAll('_', ' ').charAt(0).toUpperCase() + s.replaceAll('_', ' ').slice(1)).join(', ') : estado.replaceAll('_', ' ').charAt(0).toUpperCase() + estado.replaceAll('_', ' ').slice(1);
                 return (
-                  <tr key={v.id}>
-                    <td>{v.model}</td>
-                    <td>{v.plate}</td>
-                    <td>{v.capacity}</td>
-                    <td><Badge states={states} /></td>
-                    <td>{v.location}</td>
+                  <tr key={vehicleId}>
+                    <td>{v.matricula || v.plate}</td>
+                    <td>{v.marca || v.brand || 'N/A'}</td>
+                    <td>{v.modelo || v.model}</td>
+                    <td>{Array.isArray(estado) ? <Badge states={estado} /> : <span className={`badge ${estadoClass}`}>{estadoDisplay}</span>}</td>
                     <td className="table-actions">
-                      <Link to={`/vehicle/${v.id}`} className="button button-small button-outline">Detalles</Link>
+                      <Link to={`/vehicle/${vehicleId}`} className="button button-small button-outline">Detalles</Link>
                       {inMaint ? (
-                        <button className="button button-small button-warning" disabled={maintLoading} onClick={() => handleEndMaintenance(v.id, v.model)}>
+                        <button className="button button-small button-warning" disabled={maintLoading} onClick={() => handleEndMaintenance(vehicleId, v.modelo || v.model)}>
                           Acabar mant.
                         </button>
                       ) : (
                         <button
                           className="button button-small button-warning"
                           disabled={maintLoading}
-                          onClick={() => setMaintModal({ vehicleId: v.id, vehicleName: v.model, reason: '' })}
+                          onClick={() => setMaintModal({ vehicleId: vehicleId, vehicleName: v.modelo || v.model, reason: '' })}
                         >
                           Mantenimiento
                         </button>
                       )}
                       <button
                         className="button button-small button-danger"
-                        onClick={() => setDeleteModal({ vehicleId: v.id, vehicleName: v.model })}
+                        onClick={() => setDeleteModal({ vehicleId: vehicleId, vehicleName: v.modelo || v.model })}
                       >
                         Eliminar
                       </button>
@@ -487,6 +517,7 @@ export default function DashboardAdmin({ data: initialData }) {
         onVehicleAdded={onVehicleAdded}
         onEmployeeAdded={onEmployeeAdded}
         initialTab={drawerTab}
+        companyLocation={company.location}
       />
 
       <SurveyBuilderModal
@@ -501,7 +532,3 @@ export default function DashboardAdmin({ data: initialData }) {
     </Layout>
   );
 }
-
-DashboardAdmin.propTypes = {
-  data: PropTypes.object.isRequired,
-};

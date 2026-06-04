@@ -15,6 +15,57 @@ function duration(start, end) {
   return `${h}h ${m}m`;
 }
 
+async function loadMaintenanceHistory(vehicleId) {
+  try {
+    const maintenanceList = await api.get('/mantenimientos');
+    return Array.isArray(maintenanceList)
+      ? maintenanceList.filter(m => m.id_vehiculo === vehicleId)
+      : [];
+  } catch (err) {
+    console.error('Error loading maintenance history:', err);
+    return [];
+  }
+}
+
+async function loadTripsData(vehicleId) {
+  try {
+    const [usosList, allUsos] = await Promise.all([
+      api.get('/usos/activos'),
+      api.get('/usos')
+    ]);
+
+    const activeUso = Array.isArray(usosList)
+      ? usosList.find(u => u.id_vehiculo === vehicleId)
+      : null;
+
+    const activeTrip = activeUso ? {
+      id: activeUso.id_uso,
+      checkoutTime: activeUso.fecha_salida,
+      driverName: activeUso.nombre_conductor || 'N/A',
+      destination: activeUso.destino,
+      passengers: activeUso.pasajeros || []
+    } : null;
+
+    const vehicleUsos = Array.isArray(allUsos)
+      ? allUsos.filter(u => u.id_vehiculo === vehicleId)
+      : [];
+
+    const vehicleTrips = vehicleUsos.map(u => ({
+      checkoutTime: u.fecha_salida,
+      checkinTime: u.fecha_entrada,
+      driverName: u.nombre_conductor || 'N/A',
+      returnDriverName: u.nombre_conductor_vuelta,
+      destination: u.destino,
+      passengers: u.pasajeros || []
+    }));
+
+    return { activeTrip, vehicleTrips };
+  } catch (err) {
+    console.error('Error loading trips:', err);
+    return { activeTrip: null, vehicleTrips: [] };
+  }
+}
+
 export default function VehicleDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -36,36 +87,88 @@ export default function VehicleDetail() {
   const [viewSurveyModal, setViewSurveyModal] = useState(null);
 
   async function refresh() {
-    const res = await api.vehicleDetail(id);
-    if (!res.error) setData(res);
+    try {
+      const res = await api.vehicleDetail(id);
+      if (res?.error) {
+        console.error('Error in vehicle detail:', res.error);
+        return;
+      }
+
+      const vehicleId = res.vehicle?.id_vehiculo || res.id_vehiculo;
+      const updatedData = { ...res };
+
+      const [maintenanceHistory, { activeTrip, vehicleTrips }] = await Promise.all([
+        loadMaintenanceHistory(vehicleId),
+        loadTripsData(vehicleId)
+      ]);
+
+      updatedData.maintenanceHistory = maintenanceHistory;
+      updatedData.activeTrip = activeTrip;
+      updatedData.vehicleTrips = vehicleTrips;
+
+      setData(updatedData);
+    } catch (err) {
+      console.error('Refresh error:', err);
+    }
   }
 
   useEffect(() => {
-    api.vehicleDetail(id)
-      .then(res => {
-        if (res.error) setError(res.error);
-        else setData(res);
-      })
-      .catch(() => setError('Error al cargar el vehículo.'));
+    (async () => {
+      try {
+        const res = await api.vehicleDetail(id);
+        if (res.error) {
+          setError(res.error);
+          return;
+        }
+
+        const vehicleId = res.vehicle?.id_vehiculo || res.id_vehiculo;
+        const updatedData = { ...res };
+
+        const [maintenanceHistory, { activeTrip, vehicleTrips }] = await Promise.all([
+          loadMaintenanceHistory(vehicleId),
+          loadTripsData(vehicleId)
+        ]);
+
+        updatedData.maintenanceHistory = maintenanceHistory;
+        updatedData.activeTrip = activeTrip;
+        updatedData.vehicleTrips = vehicleTrips;
+
+        setData(updatedData);
+      } catch {
+        setError('Error al cargar el vehículo.');
+      }
+    })();
   }, [id]);
 
   useEffect(() => {
-    if (data && data.surveyTemplate && !surveyTemplate) {
-      setSurveyTemplate(data.surveyTemplate);
-      setSurveyAnswers({});
+    if (data?.surveyTemplate && !surveyTemplate) {
+      setTimeout(() => {
+        setSurveyTemplate(data.surveyTemplate);
+        setSurveyAnswers({});
+      }, 0);
     }
-  }, [data?.surveyTemplate?.id]);
+  }, [data?.surveyTemplate, data?.surveyTemplate?.id, surveyTemplate]);
 
   if (error) return <Layout><p className="alert alert-error">{error}</p></Layout>;
   if (!data) return <Layout><p>Cargando vehículo...</p></Layout>;
 
-  const { vehicle, vehicleTrips, company, activeTrip, canManageTrip, companyUsers } = data;
-  const states = vehicle.states || [];
-  const maintenanceHistory = vehicle.maintenanceHistory || [];
-  const isAvailable = states.includes('disponible') && !activeTrip;
+  // Manejar tanto estructura { vehicle: {...} } como directa {...}
+  const vehicle = data.vehicle || data;
+  const vehicleTrips = data.vehicleTrips || [];
+  const company = data.company || null;
+  const activeTrip = data.activeTrip || null;
+  const canManageTrip = data.canManageTrip !== false;
+  const companyUsers = data.companyUsers || [];
+
+  const states = vehicle?.states || vehicle?.estado || [];
+  const maintenanceHistory = vehicle?.maintenanceHistory || [];
+  const isAvailable = (Array.isArray(states) ? states.includes('disponible') : states === 'disponible') && !activeTrip;
 
   async function handleCheckout() {
-    const res = await api.checkout(vehicle.id, checkoutDriverId || null, destination || null);
+    const vehicleId = vehicle.id_vehiculo || vehicle.id;
+    console.log('Checkout for vehicleId:', vehicleId, 'driver:', checkoutDriverId, 'destination:', destination);
+    const res = await api.checkout(vehicleId, checkoutDriverId || null, destination || null);
+    console.log('Checkout response:', res);
     if (res.ok) {
       setFlash({ type: 'success', message: 'Vehículo en uso.' });
       await refresh();
@@ -89,7 +192,12 @@ export default function VehicleDetail() {
       answers: surveyAnswers,
     } : null;
 
-    const res = await api.checkin(vehicle.id, null, null, survey);
+    const usoId = activeTrip?.id;
+    if (!usoId) {
+      setFlash({ type: 'error', message: 'No hay viaje activo para completar.' });
+      return;
+    }
+    const res = await api.checkin(usoId, null, null, survey);
     setSurveyModal(false);
     setSurveyTemplate(null);
     setSurveyAnswers({});
@@ -103,7 +211,8 @@ export default function VehicleDetail() {
 
   async function confirmResetState() {
     setResetModal(false);
-    const res = await api.resetVehicleState(vehicle.id);
+    const vehicleId = vehicle.id_vehiculo || vehicle.id;
+    const res = await api.resetVehicleState(vehicleId);
     if (res.ok) {
       setFlash({ type: 'success', message: 'Estado restablecido a disponible.' });
       await refresh();
@@ -121,14 +230,15 @@ export default function VehicleDetail() {
     if (passengerMode === 'employee') {
       const emp = companyUsers.find(u => u.id === selectedUserId);
       if (!emp) { setFlash({ type: 'error', message: 'Selecciona un empleado.' }); setAddingPassenger(false); return; }
-      passengerName = emp.name;
+      passengerName = emp.nombre;
       userId = emp.id;
     } else {
       passengerName = freeName.trim();
       if (!passengerName) { setFlash({ type: 'error', message: 'Escribe el nombre del pasajero.' }); setAddingPassenger(false); return; }
     }
 
-    const res = await api.addPassenger(vehicle.id, passengerName, userId);
+    const vehicleId = vehicle.id_vehiculo || vehicle.id;
+    const res = await api.addPassenger(vehicleId, passengerName, userId);
     setAddingPassenger(false);
     if (res.ok) {
       setSelectedUserId('');
@@ -141,7 +251,8 @@ export default function VehicleDetail() {
   }
 
   async function handleRemovePassenger(idx) {
-    const res = await api.removePassenger(vehicle.id, idx);
+    const vehicleId = vehicle.id_vehiculo || vehicle.id;
+    const res = await api.removePassenger(vehicleId, idx);
     if (res.ok) {
       setFlash({ type: 'success', message: 'Pasajero eliminado.' });
       await refresh();
@@ -155,8 +266,8 @@ export default function VehicleDetail() {
       <section className="dashboard">
         <div className="dashboard-header">
           <div>
-            <h2>{vehicle.model}</h2>
-            <p>Matrícula: <strong>{vehicle.plate}</strong> · {company?.name}</p>
+            <h2>{vehicle.modelo || vehicle.model}</h2>
+            <p>Matrícula: <strong>{vehicle.matricula || vehicle.plate}</strong> · {company?.name}</p>
           </div>
           <Link to="/dashboard" className="button button-outline">← Volver al panel</Link>
         </div>
@@ -168,13 +279,9 @@ export default function VehicleDetail() {
             <h3>Estado</h3>
             <Badge states={states} />
           </div>
-          <div className="admin-card admin-card-vehicles">
-            <h3>Capacidad</h3>
-            <span className="stat-number">{vehicle.capacity}</span>
-          </div>
           <div className="admin-card admin-card-employees">
             <h3>Ubicación</h3>
-            <span className="stat-number" style={{ fontSize: '1.2rem' }}>{vehicle.location}</span>
+            <span className="stat-number" style={{ fontSize: '1.2rem' }}>{vehicle.ubicacion || vehicle.location || 'N/A'}</span>
           </div>
           <div className="admin-card admin-card-requests">
             <h3>Total viajes</h3>
@@ -192,15 +299,15 @@ export default function VehicleDetail() {
           <div className="table-section">
             <h3>Registrar salida</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
-              {(user?.role === 'admin' || user?.role === 'superadmin') && (
+              {(user?.rol === 'admin' || user?.rol === 'superadmin') && (
                 <div className="field-group">
                   <label htmlFor="checkout-driver">Conductor</label>
                   <select id="checkout-driver" className="input-inline" value={checkoutDriverId} onChange={e => setCheckoutDriverId(e.target.value)}>
-                    {user?.role !== 'superadmin' && <option value="">Yo mismo</option>}
+                    {user?.rol !== 'superadmin' && <option value="">Yo mismo</option>}
                     {companyUsers
-                      .filter(u => user?.role === 'superadmin' || u.id !== user?.id)
+                      .filter(u => user?.rol === 'superadmin' || u.id !== user?.id)
                       .map(u => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
+                        <option key={u.id} value={u.id}>{u.nombre}</option>
                       ))}
                   </select>
                 </div>
@@ -220,7 +327,7 @@ export default function VehicleDetail() {
               <button
                 className="button button-outline"
                 onClick={handleCheckout}
-                disabled={user?.role === 'superadmin' && !checkoutDriverId}
+                disabled={user?.rol === 'superadmin' && !checkoutDriverId}
               >
                 Registrar salida
               </button>
@@ -229,7 +336,7 @@ export default function VehicleDetail() {
         )}
 
         {/* ── Reseteo de estado (admin, sin viaje activo) ── */}
-        {user?.role === 'admin' && !isAvailable && !activeTrip && (
+        {user?.rol === 'admin' && !isAvailable && !activeTrip && (
           <div className="table-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <p style={{ margin: 0, color: 'var(--muted)' }}>El vehículo aparece como no disponible sin viaje activo registrado.</p>
             <button className="button button-outline" onClick={() => setResetModal(true)}>
@@ -315,7 +422,7 @@ export default function VehicleDetail() {
                     {companyUsers
                       .filter(u => u.id !== user?.id)
                       .map(u => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
+                        <option key={u.id} value={u.id}>{u.nombre}</option>
                       ))}
                   </select>
                 ) : (
@@ -399,9 +506,11 @@ export default function VehicleDetail() {
         </div>
 
         {/* ── Historial de mantenimientos ── */}
-        {maintenanceHistory.length > 0 && (
-          <div className="table-section">
-            <h3>Historial de mantenimientos</h3>
+        <div className="table-section">
+          <h3>Historial de mantenimientos</h3>
+          {maintenanceHistory.length === 0 ? (
+            <p style={{ color: 'var(--muted)', padding: '1.5rem', textAlign: 'center' }}>Sin mantenimientos registrados</p>
+          ) : (
             <table>
               <thead>
                 <tr>
@@ -409,23 +518,28 @@ export default function VehicleDetail() {
                 </tr>
               </thead>
               <tbody>
-                {maintenanceHistory.map((m, i) => (
-                  <tr key={m.start || i}>
-                    <td>{new Date(m.start).toLocaleString('es-ES')}</td>
-                    <td>{m.end ? new Date(m.end).toLocaleString('es-ES') : 'En curso'}</td>
-                    <td>{duration(m.start, m.end)}</td>
-                    <td>{m.reason || '—'}</td>
-                    <td>
-                      {m.invoicePath
-                        ? <a href={m.invoicePath} target="_blank" rel="noreferrer" className="button button-small button-outline">Ver</a>
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {maintenanceHistory.map((m, i) => {
+                  const inicio = m.fecha_inicio || m.start;
+                  const fin = m.fecha_fin || m.end;
+                  const motivo = m.descripcion || m.reason;
+                  return (
+                    <tr key={inicio || i}>
+                      <td>{inicio ? new Date(inicio).toLocaleString('es-ES') : '—'}</td>
+                      <td>{fin ? new Date(fin).toLocaleString('es-ES') : 'En curso'}</td>
+                      <td>{duration(inicio, fin)}</td>
+                      <td>{motivo || '—'}</td>
+                      <td>
+                        {m.invoicePath
+                          ? <a href={m.invoicePath} target="_blank" rel="noreferrer" className="button button-small button-outline">Ver</a>
+                          : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
       </section>
 
       {/* ── Modal: restablecer estado ── */}
