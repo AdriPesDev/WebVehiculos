@@ -455,12 +455,14 @@ function normalizeUso(u) {
     checkoutTime: u.fecha_salida,
     checkinTime: u.fecha_entrada,
     status: u.fecha_entrada ? "completed" : "active",
-    passengers: (u.pasajeros || []).map((p) => ({
-      id: p.id_usuario,
-      name: p.nombre,
-      userId: p.id_usuario,
-      user_id: p.id_usuario,
-    })),
+    passengers: Array.isArray(u.pasajeros)
+      ? u.pasajeros.map((p) => ({
+          id: p.id_usuario,
+          name: p.nombre,
+          userId: p.id_usuario,
+          user_id: p.id_usuario,
+        }))
+      : [],
   };
 }
 
