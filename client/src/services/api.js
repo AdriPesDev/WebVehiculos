@@ -118,15 +118,19 @@ export const api = {
     }
 
     if (rol === "superadmin") {
-      const [empresas, usuarios] = await Promise.all([
+      const [empresas, usuarios, vehiculos] = await Promise.all([
         get("/superadmin/empresas"),
         get("/superadmin/usuarios"),
+        get("/superadmin/vehiculos"),
       ]);
       return {
         role: "superadmin",
         companies: empresas.map(normalizeEmpresa),
         users: usuarios.map(normalizeUsuario),
-        vehicles: [], // el superadmin no tiene empresa propia, los vehículos se ven por empresa
+        vehicles: vehiculos.map((v) => ({
+          ...normalizeVehiculo(v),
+          nombre_empresa: v.nombre_empresa,
+        })),
       };
     }
 
@@ -366,6 +370,16 @@ export const api = {
       .catch((e) => ({ ok: false, error: e.message })),
 
   getEncuestaViaje: (id_uso) => get(`/encuestas/preguntas?id_uso=${id_uso}`),
+
+  getSuperadminEncuestas: () =>
+    get("/superadmin/encuestas")
+      .then((preguntas) =>
+        preguntas.map((p) => ({
+          ...normalizePregunta(p),
+          nombre_empresa: p.nombre_empresa,
+        })),
+      )
+      .catch(() => []),
 };
 
 // ── Normalizadores ────────────────────────────────────────────────────────────
