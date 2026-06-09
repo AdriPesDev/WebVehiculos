@@ -330,10 +330,30 @@ export const api = {
       .then((preguntas) => ({ surveys: preguntas.map(normalizePregunta) }))
       .catch(() => ({ surveys: [] })),
 
-  createSurvey: (data) =>
-    post("/encuestas/preguntas", data)
-      .then((r) => ({ ok: true, ...r }))
-      .catch((e) => ({ ok: false, error: e.message })),
+  createSurvey: async ({ vehicleId, questions }) => {
+    // Mapeo de tipos del modal a tipos de la API
+    const tipoMap = {
+      text: "texto",
+      number: "numero",
+      km: "numero",
+      radio: "opciones",
+    };
+
+    try {
+      for (const q of questions) {
+        await post("/encuestas/preguntas", {
+          texto: q.text,
+          tipo_respuesta: tipoMap[q.type] || "texto",
+          obligatoria: q.required || false,
+          opciones: q.type === "radio" ? q.options.filter((o) => o.trim()) : [],
+          id_vehiculos: vehicleId ? [parseInt(vehicleId)] : [],
+        });
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  },
 
   deleteSurvey: (id) =>
     del(`/encuestas/preguntas/${id}`)
