@@ -45,3 +45,7 @@ Thumbs.db
 # Project-specific (datos sensibles/locales)
 data/*.json
 !data/.gitkeep
+
+# Exlcuir ENV
+.env
+*.env
