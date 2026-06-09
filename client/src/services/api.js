@@ -132,11 +132,16 @@ export const api = {
 
     if (rol === "empleado") {
       const [empresas, vehiculos, usos] = await Promise.all([
-        get("/empresas"),
+        get("/empresas/publico"),
         get("/vehiculos"),
         get("/usos"),
       ]);
-      const empresa = empresas[0] || {};
+      const empresaPublica =
+        empresas.find((e) => e.id_empresa === usuario.id_empresa) || {};
+      const empresa = {
+        id_empresa: empresaPublica.id_empresa,
+        nombre: empresaPublica.nombre,
+      };
       const usosNorm = usos.map(normalizeUso);
       const myActiveTrip =
         usosNorm.find(
