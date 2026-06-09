@@ -24,11 +24,11 @@ function EyeIcon({ open }) {
 EyeIcon.propTypes = { open: PropTypes.bool.isRequired };
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError]               = useState(null);
+  const [loading, setLoading]           = useState(false);
   const { setUser } = useAuth();
   const navigate = useNavigate();
 
@@ -36,13 +36,19 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await api.login(email, password);
-    setLoading(false);
-    if (res.ok) {
-      setUser(res.user);
-      navigate('/dashboard');
-    } else {
-      setError(res.error || 'Error al iniciar sesión.');
+    try {
+      const res = await api.login(email, password);
+      // api.login devuelve { token, usuario } y guarda en localStorage
+      if (res?.usuario) {
+        setUser(res.usuario);
+        navigate('/dashboard');
+      } else {
+        setError('Error al iniciar sesión.');
+      }
+    } catch (err) {
+      setError(err.message || 'Error al iniciar sesión.');
+    } finally {
+      setLoading(false);
     }
   }
 

@@ -23,14 +23,14 @@ function EyeIcon({ open }) {
 EyeIcon.propTypes = { open: PropTypes.bool.isRequired };
 
 export default function Register() {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [fullName, setFullName]           = useState('');
+  const [email, setEmail]                 = useState('');
+  const [password, setPassword]           = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword]   = useState(false);
+  const [showConfirm, setShowConfirm]     = useState(false);
+  const [error, setError]                 = useState(null);
+  const [loading, setLoading]             = useState(false);
   const navigate = useNavigate();
 
   const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
@@ -43,12 +43,14 @@ export default function Register() {
     }
     setError(null);
     setLoading(true);
-    const res = await api.register(fullName, email, password);
-    setLoading(false);
-    if (res.ok) {
+    try {
+      // api.register devuelve el usuario creado o lanza un error
+      await api.register(fullName, email, password);
       navigate('/login');
-    } else {
-      setError(res.error || 'Error al registrarse.');
+    } catch (err) {
+      setError(err.message || 'Error al registrarse.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -130,7 +132,11 @@ export default function Register() {
               </span>
             )}
           </div>
-          <button type="submit" className="button button-primary" disabled={loading || passwordMismatch || !fullName.trim() || !email.trim() || !password || !confirmPassword}>
+          <button
+            type="submit"
+            className="button button-primary"
+            disabled={loading || passwordMismatch || !fullName.trim() || !email.trim() || !password || !confirmPassword}
+          >
             {loading ? 'Registrando...' : 'Crear cuenta'}
           </button>
         </form>

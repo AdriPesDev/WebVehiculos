@@ -1,14 +1,17 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
 
 export default function Header() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  async function handleLogout() {
-    await api.logout();
+  function handleLogout() {
+    // Limpia el token y los datos del usuario del localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    // Limpia el estado de React
     setUser(null);
+    // Redirige al inicio
     navigate('/');
   }
 
