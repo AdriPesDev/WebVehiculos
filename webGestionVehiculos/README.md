@@ -51,10 +51,16 @@ node server.js
 
 ## Credenciales iniciales
 
-| Rol | Email | Contraseña |
-|-----|-------|-----------|
-| Superadmin | `superadmin@nethive.com` | `SuperAdmin2026!` |
-| Admin (empresa Nethive) | `admin@nethive.com` | `Admin2026!` |
+Las credenciales de acceso inicial se generan automáticamente al primera ejecución:
+
+| Rol | Email |
+|-----|-------|
+| Superadmin | `superadmin@nethive.com` |
+| Admin (empresa Nethive) | `admin@nethive.com` |
+
+**La contraseña se mostrará en la consola al iniciar el servidor por primera vez.** Guarda estas credenciales en un lugar seguro.
+
+Para usar contraseñas específicas, configura `SUPERADMIN_PASSWORD` y `ADMIN_PASSWORD` en tu archivo `.env` antes de ejecutar el servidor.
 
 Los empleados se crean desde el panel de administración o se registran y solicitan unirse a una empresa.
 

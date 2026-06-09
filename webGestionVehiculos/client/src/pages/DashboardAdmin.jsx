@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import PropTypes from 'prop-types';
 import { api } from '../services/api';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
@@ -8,129 +7,86 @@ import Alert from '../components/Alert';
 import Drawer from '../components/Drawer';
 import SurveyBuilderModal from '../components/SurveyBuilderModal';
 
-export default function DashboardAdmin({ data: initialData }) {
-  const [data, setData] = useState(initialData);
+export default function DashboardAdmin() {
+  const [data, setData] = useState(null);
   const [flash, setFlash] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerTab, setDrawerTab] = useState('vehicle');
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
-  const [companySurveys, setCompanySurveys] = useState([]);
-  const [deleteSurveyModal, setDeleteSurveyModal] = useState(null);
 
-  const [approveModal, setApproveModal] = useState(null);
-  const [maintModal, setMaintModal] = useState(null);
-  const [maintLoading, setMaintLoading] = useState(false);
-  const [endMaintModal, setEndMaintModal] = useState(null);
-  const [invoiceFile, setInvoiceFile] = useState(null);
-  const { company, companyVehicles, companyUsers, pendingRequests, activeTrips = [] } = data;
+  const [surveyResponsesModal, setSurveyResponsesModal] = useState(null);
+  const [surveyResponses, setSurveyResponses] = useState([]);
+  const [questionHistoryModal, setQuestionHistoryModal] = useState(null);
+  const [questionHistory, setQuestionHistory] = useState([]);
 
-  const [deleteModal, setDeleteModal] = useState(null);
+  const company = data?.company || { name: 'Cargando...' };
+  const companyVehicles = data?.companyVehicles || [];
+  const companyUsers = data?.companyUsers || [];
+  const pendingRequests = data?.pendingRequests || [];
+  const activeTrips = data?.activeTrips || [];
+
   const [removeEmpModal, setRemoveEmpModal] = useState(null);
-
-  async function loadSurveys() {
-    const res = await api.getSurveys();
-    if (res.surveys) {
-      setCompanySurveys(res.surveys);
-    }
-  }
+  const [surveyQuestions, setSurveyQuestions] = useState([]);
+  const [loadingSurveys, setLoadingSurveys] = useState(false);
+  const [surveyFilterMode, setSurveyFilterMode] = useState('all'); // 'all' o 'vehicle'
+  const [selectedVehicleForSurvey, setSelectedVehicleForSurvey] = useState('');
+  const [editQuestionModal, setEditQuestionModal] = useState(null);
+  const [editingText, setEditingText] = useState('');
+  const [confirmDeleteQuestionModal, setConfirmDeleteQuestionModal] = useState(null);
 
   useEffect(() => {
-    loadSurveys();
+    api.dashboard()
+      .then(res => {
+        console.log('DashboardAdmin data:', res);
+        setData(res || {});
+      })
+      .catch(err => {
+        console.error('Failed to load dashboard:', err);
+        setData({});
+      });
+
+    // Cargar preguntas automáticamente
+    loadSurveyQuestions();
   }, []);
 
-  async function confirmApprove(role) {
-    const { requestId, userName } = approveModal;
-    setApproveModal(null);
-    const res = await api.approveRequest(requestId, role);
-    if (res.ok) {
-      const label = role === 'admin' ? 'administrador' : 'empleado';
-      setFlash({ type: 'success', message: `${userName} aprobado como ${label}.` });
-      setData(d => ({ ...d, pendingRequests: d.pendingRequests.filter(r => r.id !== requestId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
+  if (!data) return <Layout><p className="alert alert-info">Cargando panel...</p></Layout>;
+
+  async function confirmApprove(requestId) {
+    try {
+      await api.approveRequest(requestId);
+      setFlash({ type: 'success', message: 'Solicitud aprobada. Usuario añadido como empleado.' });
+      const updated = await api.dashboard();
+      setData(updated);
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message });
     }
   }
 
   async function handleReject(requestId) {
-    const res = await api.rejectRequest(requestId);
-    if (res.ok) {
+    try {
+      await api.rejectRequest(requestId);
       setFlash({ type: 'success', message: 'Solicitud rechazada.' });
-      setData(d => ({ ...d, pendingRequests: d.pendingRequests.filter(r => r.id !== requestId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
-  }
-
-  async function confirmMaintenance() {
-    setMaintLoading(true);
-    const res = await api.startMaintenance(maintModal.vehicleId, maintModal.reason);
-    setMaintModal(null);
-    setMaintLoading(false);
-    if (res.ok) {
-      setFlash({ type: 'success', message: 'Mantenimiento iniciado.' });
       const updated = await api.dashboard();
       setData(updated);
-    } else {
-      setFlash({ type: 'error', message: res.error });
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message });
     }
   }
 
-  function handleEndMaintenance(vehicleId, vehicleName) {
-    setInvoiceFile(null);
-    setEndMaintModal({ vehicleId, vehicleName });
-  }
-
-  async function confirmEndMaintenance() {
-    const { vehicleId } = endMaintModal;
-    setEndMaintModal(null);
-    setMaintLoading(true);
-    const res = await api.endMaintenance(vehicleId, invoiceFile);
-    setInvoiceFile(null);
-    setMaintLoading(false);
-    if (res.ok) {
-      setFlash({ type: 'success', message: 'Mantenimiento finalizado.' });
-      const updated = await api.dashboard();
-      setData(updated);
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
-  }
-
-  async function confirmDelete() {
-    const { vehicleId } = deleteModal;
-    setDeleteModal(null);
-    const res = await api.deleteVehicle(vehicleId);
-    if (res.ok) {
-      setFlash({ type: 'success', message: 'Vehículo eliminado.' });
-      setData(d => ({ ...d, companyVehicles: d.companyVehicles.filter(v => v.id !== vehicleId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
-  }
 
   async function confirmRemoveEmployee() {
     const { userId } = removeEmpModal;
     setRemoveEmpModal(null);
-    const res = await api.removeEmployee(userId);
-    if (res.ok) {
-      setFlash({ type: 'success', message: 'Empleado retirado.' });
-      setData(d => ({ ...d, companyUsers: d.companyUsers.filter(u => u.id !== userId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
+    try {
+      await api.removeEmployee(userId);
+      setFlash({ type: 'success', message: 'Empleado desactivado. Sus datos históricos se conservan.' });
+      const updated = await api.dashboard();
+      setData(updated);
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message });
     }
   }
 
-  async function confirmDeleteSurvey() {
-    const { surveyId } = deleteSurveyModal;
-    setDeleteSurveyModal(null);
-    const res = await api.deleteSurvey(surveyId);
-    if (res.ok) {
-      setFlash({ type: 'success', message: 'Encuesta eliminada.' });
-      setCompanySurveys(s => s.filter(srv => srv.id !== surveyId));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
-  }
 
   function openDrawer(tab) {
     setDrawerTab(tab);
@@ -146,6 +102,105 @@ export default function DashboardAdmin({ data: initialData }) {
     setData(d => ({ ...d, companyUsers: [...d.companyUsers, user] }));
     setFlash({ type: 'success', message: 'Empleado añadido.' });
   }
+
+  async function loadSurveyResponses(usoId) {
+    try {
+      const res = await api.getSurveyResponses(usoId);
+      if (res.ok) {
+        setSurveyResponses(res.respuestas || []);
+        setSurveyResponsesModal({ usoId });
+      } else {
+        setFlash({ type: 'error', message: 'Error al cargar respuestas.' });
+      }
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message });
+    }
+  }
+
+  async function loadSurveyQuestions(vehicleId = null) {
+    setLoadingSurveys(true);
+    try {
+      const res = await api.getAllSurveyQuestions();
+      let questions = [];
+      if (Array.isArray(res)) {
+        questions = res;
+      } else if (res?.preguntas && Array.isArray(res.preguntas)) {
+        questions = res.preguntas;
+      } else if (res?.data && Array.isArray(res.data)) {
+        questions = res.data;
+      }
+
+      if (vehicleId) {
+        const vid = Number(vehicleId);
+        const filtered = questions.filter(q => {
+          const veh = q.vehiculos;
+          if (!veh || veh.length === 0) return true; // sin vehiculo asignado = global
+          return veh.some(v => (typeof v === 'object' ? (v.id_vehiculo || v.id) : Number(v)) === vid);
+        });
+        setSurveyQuestions(filtered);
+      } else {
+        setSurveyQuestions(questions);
+      }
+    } catch (err) {
+      setFlash({ type: 'error', message: 'Error al cargar preguntas.' });
+      setSurveyQuestions([]);
+    }
+    setLoadingSurveys(false);
+  }
+
+  async function loadQuestionHistory(question) {
+    try {
+      const res = await api.getSurveyHistory(question.id_pregunta);
+      if (res.ok) {
+        setQuestionHistory(res.respuestas || []);
+        setQuestionHistoryModal({ preguntaId: question.id_pregunta, texto: question.texto });
+      } else {
+        setFlash({ type: 'error', message: 'Error al cargar historial.' });
+      }
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message });
+    }
+  }
+
+  function handleDeactivateQuestion(questionId) {
+    setConfirmDeleteQuestionModal(questionId);
+  }
+
+  async function confirmDeleteQuestion() {
+    const questionId = confirmDeleteQuestionModal;
+    setConfirmDeleteQuestionModal(null);
+
+    try {
+      await api.deactivateQuestion(questionId);
+      setFlash({ type: 'success', message: 'Pregunta desactivada.' });
+      setSurveyQuestions(prev => prev.filter(q => q.id_pregunta !== questionId));
+    } catch (err) {
+      setFlash({ type: 'error', message: 'Error: ' + err.message });
+    }
+  }
+
+
+  function openEditQuestionModal(question) {
+    setEditQuestionModal(question);
+    setEditingText(question.texto);
+  }
+
+  async function handleUpdateQuestion() {
+    if (!editingText.trim()) {
+      setFlash({ type: 'error', message: 'La pregunta no puede estar vacía.' });
+      return;
+    }
+
+    try {
+      await api.updateQuestion(editQuestionModal.id_pregunta, editingText.trim());
+      setFlash({ type: 'success', message: 'Pregunta actualizada.' });
+      setEditQuestionModal(null);
+      await loadSurveyQuestions();
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message });
+    }
+  }
+
 
   return (
     <Layout>
@@ -178,7 +233,7 @@ export default function DashboardAdmin({ data: initialData }) {
           </div>
           <div className="admin-card admin-card-employees">
             <h3>👥 Empleados</h3>
-            <span className="stat-number">{companyUsers.filter(u => u.role === 'empleado').length}</span>
+            <span className="stat-number">{companyUsers.filter(u => u.rol === 'empleado').length}</span>
             <p>empleados activos</p>
           </div>
           <div className="admin-card admin-card-requests">
@@ -194,19 +249,18 @@ export default function DashboardAdmin({ data: initialData }) {
             <table>
               <thead>
                 <tr>
-                  <th>Usuario</th><th>Email</th><th>Fecha</th><th>Acciones</th>
+                  <th>Usuario</th><th>Fecha</th><th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {pendingRequests.map(r => (
-                  <tr key={r.id}>
-                    <td>{r.userName}</td>
-                    <td>{r.userEmail}</td>
-                    <td>{new Date(r.createdAt).toLocaleDateString('es-ES')}</td>
+                  <tr key={r.id_solicitud}>
+                    <td>{r.nombre_usuario || r.userName || '—'}</td>
+                    <td>{new Date(r.fecha_solicitud).toLocaleDateString('es-ES')}</td>
                     <td>
-                      <button className="button button-outline" onClick={() => setApproveModal({ requestId: r.id, userName: r.userName })}>Aprobar</button>
+                      <button className="button button-outline" onClick={() => confirmApprove(r.id_solicitud)}>Aprobar</button>
                       {' '}
-                      <button className="button button-danger" onClick={() => handleReject(r.id)}>Rechazar</button>
+                      <button className="button button-danger" onClick={() => handleReject(r.id_solicitud)}>Rechazar</button>
                     </td>
                   </tr>
                 ))}
@@ -220,44 +274,32 @@ export default function DashboardAdmin({ data: initialData }) {
           <table>
             <thead>
               <tr>
-                <th>Modelo</th><th>Matrícula</th><th>Capacidad</th><th>Estado</th><th>Ubicación</th><th>Acciones</th>
+                <th>Matrícula</th><th>Marca</th><th>Modelo</th><th>Estado</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {companyVehicles.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay vehículos en la flota todavía.</td></tr>
+                <tr><td colSpan={5} className="empty-state">No hay vehículos en la flota todavía.</td></tr>
               )}
               {companyVehicles.map(v => {
-                const states = v.states || [];
-                const inMaint = states.includes('mantenimiento') || states.includes('maintenance');
+                const vehicleId = v.id || v.id_vehiculo;
+                const estado = v.estado || v.states || 'disponible';
+                const inMaint = Array.isArray(estado) ? estado.includes('mantenimiento') : estado === 'mantenimiento';
+                let estadoClass = 'badge-success';
+                if (inMaint) {
+                  estadoClass = 'badge-danger';
+                } else if (Array.isArray(estado) ? estado.includes('en_uso') || estado.includes('ocupado') : estado === 'en_uso' || estado === 'ocupado') {
+                  estadoClass = 'badge-warning';
+                }
+                const estadoDisplay = Array.isArray(estado) ? estado.map(s => s.replaceAll('_', ' ').charAt(0).toUpperCase() + s.replaceAll('_', ' ').slice(1)).join(', ') : estado.replaceAll('_', ' ').charAt(0).toUpperCase() + estado.replaceAll('_', ' ').slice(1);
                 return (
-                  <tr key={v.id}>
-                    <td>{v.model}</td>
-                    <td>{v.plate}</td>
-                    <td>{v.capacity}</td>
-                    <td><Badge states={states} /></td>
-                    <td>{v.location}</td>
+                  <tr key={vehicleId}>
+                    <td>{v.matricula || v.plate}</td>
+                    <td>{v.marca || v.brand || 'N/A'}</td>
+                    <td>{v.modelo || v.model}</td>
+                    <td>{Array.isArray(estado) ? <Badge states={estado} /> : <span className={`badge ${estadoClass}`}>{estadoDisplay}</span>}</td>
                     <td className="table-actions">
-                      <Link to={`/vehicle/${v.id}`} className="button button-small button-outline">Detalles</Link>
-                      {inMaint ? (
-                        <button className="button button-small button-warning" disabled={maintLoading} onClick={() => handleEndMaintenance(v.id, v.model)}>
-                          Acabar mant.
-                        </button>
-                      ) : (
-                        <button
-                          className="button button-small button-warning"
-                          disabled={maintLoading}
-                          onClick={() => setMaintModal({ vehicleId: v.id, vehicleName: v.model, reason: '' })}
-                        >
-                          Mantenimiento
-                        </button>
-                      )}
-                      <button
-                        className="button button-small button-danger"
-                        onClick={() => setDeleteModal({ vehicleId: v.id, vehicleName: v.model })}
-                      >
-                        Eliminar
-                      </button>
+                      <Link to={`/vehicle/${vehicleId}`} className="button button-small button-outline">Detalles</Link>
                     </td>
                   </tr>
                 );
@@ -276,51 +318,19 @@ export default function DashboardAdmin({ data: initialData }) {
             </thead>
             <tbody>
               {companyUsers.length === 0 && (
-                <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay trabajadores en la empresa todavía.</td></tr>
+                <tr><td colSpan={4} className="empty-state">No hay trabajadores en la empresa todavía.</td></tr>
               )}
-              {companyUsers.map(u => (
-                <tr key={u.id}>
-                  <td>{u.name}</td>
+              {companyUsers.filter(u => u.activo !== false).map(u => (
+                <tr key={u.id_usuario || u.id}>
+                  <td>{u.nombre}</td>
                   <td>{u.email}</td>
-                  <td><span className="badge">{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</span></td>
+                  <td><span className="badge">{u.rol.charAt(0).toUpperCase() + u.rol.slice(1)}</span></td>
                   <td>
-                    {u.role === 'empleado' && (
-                      <button className="button button-small button-danger" onClick={() => setRemoveEmpModal({ userId: u.id, userName: u.name })}>
+                    {u.rol === 'empleado' && (
+                      <button className="button button-small button-danger" onClick={() => setRemoveEmpModal({ userId: u.id_usuario, userName: u.nombre })}>
                         Quitar
                       </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="table-section">
-          <h3>Encuestas de empresa</h3>
-          <table>
-            <thead>
-              <tr>
-                <th>Vehículo</th><th>Nº Preguntas</th><th>Fecha creación</th><th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {companySurveys.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay encuestas creadas todavía.</td></tr>
-              )}
-              {companySurveys.map(s => (
-                <tr key={s.id}>
-                  <td>{s.vehicleName}</td>
-                  <td>{s.questions.length}</td>
-                  <td>{new Date(s.createdAt).toLocaleDateString('es-ES')}</td>
-                  <td><span className={`badge ${s.active ? 'badge-success' : 'badge-warning'}`}>{s.active ? 'Activa' : 'Inactiva'}</span></td>
-                  <td>
-                    <button
-                      className="button button-small button-danger"
-                      onClick={() => setDeleteSurveyModal({ surveyId: s.id, surveyName: s.vehicleName })}
-                    >
-                      Eliminar
-                    </button>
                   </td>
                 </tr>
               ))}
@@ -350,6 +360,12 @@ export default function DashboardAdmin({ data: initialData }) {
                       <Link to={`/vehicle/${t.vehicle_id}`} className="button button-small button-outline">
                         Gestionar
                       </Link>
+                      <button
+                        className="button button-small button-outline"
+                        onClick={() => loadSurveyResponses(t.id)}
+                      >
+                        Respuestas
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -357,123 +373,270 @@ export default function DashboardAdmin({ data: initialData }) {
             </table>
           </div>
         )}
+
+        <div className="table-section">
+          <h3>Gestión de encuestas</h3>
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <button
+              className={`button ${surveyFilterMode === 'all' ? 'button-primary' : 'button-outline'}`}
+              onClick={() => {
+                setSurveyFilterMode('all');
+                setSelectedVehicleForSurvey('');
+                loadSurveyQuestions();
+              }}
+            >
+              Todas las preguntas
+            </button>
+            <button
+              className={`button ${surveyFilterMode === 'vehicle' ? 'button-primary' : 'button-outline'}`}
+              onClick={() => {
+                setSurveyFilterMode('vehicle');
+                setSurveyQuestions([]);
+                setSelectedVehicleForSurvey('');
+              }}
+            >
+              Por vehículo
+            </button>
+          </div>
+
+          {surveyFilterMode === 'vehicle' && (
+            <div className="select-field">
+              <label htmlFor="vehicle-select">Selecciona un vehículo</label>
+              <select
+                id="vehicle-select"
+                value={selectedVehicleForSurvey}
+                onChange={(e) => {
+                  const vehicleId = e.target.value;
+                  setSelectedVehicleForSurvey(vehicleId);
+                  if (vehicleId) {
+                    loadSurveyQuestions(vehicleId);
+                  } else {
+                    setSurveyQuestions([]);
+                  }
+                }}
+              >
+                <option value="">-- Selecciona un vehículo --</option>
+                {companyVehicles.map(v => (
+                  <option key={v.id_vehiculo || v.id} value={v.id_vehiculo || v.id}>
+                    {v.matricula || v.plate} - {v.marca || v.brand} {v.modelo || v.model}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {surveyFilterMode === 'vehicle' && !selectedVehicleForSurvey ? (
+            <p className="empty-state">
+              Selecciona un vehículo para ver sus preguntas.
+            </p>
+          ) : (
+            <>
+              {loadingSurveys && (
+                <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '1rem' }}>Cargando preguntas...</p>
+              )}
+
+              {surveyQuestions.length > 0 ? (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Pregunta</th>
+                      <th>Tipo</th>
+                      <th>Obligatoria</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {surveyQuestions.map(q => (
+                      <tr key={q.id_pregunta} style={q.activa === false ? { opacity: 0.6 } : undefined}>
+                        <td>{q.texto}</td>
+                        <td>{q.tipo_respuesta}</td>
+                        <td>{q.obligatoria ? 'Sí' : 'No'}</td>
+                        <td>
+                          <span className={`badge ${q.activa === false ? 'badge-danger' : 'badge-success'}`}>
+                            {q.activa === false ? 'Inactiva' : 'Activa'}
+                          </span>
+                        </td>
+                        <td className="table-cell-actions">
+                          <button
+                            className="button button-small button-outline"
+                            onClick={() => loadQuestionHistory(q)}
+                            title="Ver historial de respuestas"
+                          >
+                            Historial
+                          </button>
+                          <button
+                            className="button button-small button-outline"
+                            onClick={() => openEditQuestionModal(q)}
+                            title="Editar pregunta"
+                          >
+                            Editar
+                          </button>
+                          {q.activa !== false && (
+                            <button
+                              className="button button-small button-danger"
+                              onClick={() => handleDeactivateQuestion(q.id_pregunta)}
+                              title="Desactivar pregunta"
+                            >
+                              Desactivar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="empty-state">
+                  {surveyFilterMode === 'vehicle' ? 'No hay preguntas para este vehículo.' : 'No hay preguntas creadas todavía.'}
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </section>
 
       {/* ── Modal: aprobar solicitud ── */}
-      {approveModal && (
-        <>
-          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setApproveModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="approve-modal-title">
-            <h3 id="approve-modal-title">Aprobar solicitud</h3>
-            <p>¿Con qué rol quieres añadir a <strong>{approveModal.userName}</strong> a la empresa?</p>
-            <div className="modal-actions">
-              <button className="button button-outline" onClick={() => setApproveModal(null)}>Cancelar</button>
-              <button className="button button-outline" onClick={() => confirmApprove('empleado')}>Empleado</button>
-              <button className="button button-primary" onClick={() => confirmApprove('admin')}>Administrador</button>
-            </div>
-          </dialog>
-        </>
-      )}
-
-      {/* ── Modal: finalizar mantenimiento ── */}
-      {endMaintModal && (
-        <>
-          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setEndMaintModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="endmaint-modal-title">
-            <h3 id="endmaint-modal-title">Finalizar mantenimiento</h3>
-            <p>Vehículo: <strong>{endMaintModal.vehicleName}</strong></p>
-            <div className="field">
-              <label htmlFor="invoice-file-admin" className="button button-outline file-btn">
-                📎 {invoiceFile ? invoiceFile.name : 'Adjuntar factura (opcional)'}
-              </label>
-              <input
-                id="invoice-file-admin"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                style={{ display: 'none' }}
-                onChange={e => setInvoiceFile(e.target.files[0] || null)}
-              />
-            </div>
-            <div className="modal-actions">
-              <button className="button button-outline" onClick={() => setEndMaintModal(null)}>Cancelar</button>
-              <button className="button button-primary" onClick={confirmEndMaintenance}>Finalizar</button>
-            </div>
-          </dialog>
-        </>
-      )}
-
-      {/* ── Modal: motivo de mantenimiento ── */}
-      {maintModal && (
-        <>
-          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setMaintModal(null)} />
-
-          <dialog open className="modal-box" aria-labelledby="maint-modal-title">
-            <h3 id="maint-modal-title">Iniciar mantenimiento</h3>
-            <p>Vehículo: <strong>{maintModal.vehicleName}</strong></p>
-            <textarea
-              rows={3}
-              placeholder="Motivo del mantenimiento (opcional)"
-              value={maintModal.reason}
-              onChange={e => setMaintModal(m => ({ ...m, reason: e.target.value }))}
-              autoFocus
-            />
-            <div className="modal-actions">
-              <button className="button button-outline" onClick={() => setMaintModal(null)}>Cancelar</button>
-              <button className="button button-warning" onClick={confirmMaintenance}>Iniciar mantenimiento</button>
-            </div>
-          </dialog>
-        </>
-      )}
-
-      {/* ── Modal: confirmar eliminación ── */}
-      {deleteModal && (
-        <>
-          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setDeleteModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="delete-modal-title">
-            <h3 id="delete-modal-title">Eliminar vehículo</h3>
-            <p>
-              ¿Seguro que quieres eliminar <strong>{deleteModal.vehicleName}</strong>?
-              Esta acción es permanente y no se puede deshacer.
-            </p>
-            <div className="modal-actions">
-              <button className="button button-outline" onClick={() => setDeleteModal(null)}>Cancelar</button>
-              <button className="button button-danger" onClick={confirmDelete}>Eliminar</button>
-            </div>
-          </dialog>
-        </>
-      )}
 
       {/* ── Modal: quitar empleado ── */}
       {removeEmpModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setRemoveEmpModal(null)} />
           <dialog open className="modal-box" aria-labelledby="remove-emp-modal-title">
-            <h3 id="remove-emp-modal-title">Quitar empleado</h3>
+            <h3 id="remove-emp-modal-title">Desactivar empleado</h3>
             <p>
-              ¿Seguro que quieres quitar a <strong>{removeEmpModal.userName}</strong> de la empresa?
-              El empleado perderá el acceso y quedará sin empresa asignada.
+              ¿Seguro que quieres desactivar a <strong>{removeEmpModal.userName}</strong>?
+              Perderá el acceso pero sus datos e historial de viajes se conservarán.
             </p>
             <div className="modal-actions">
               <button className="button button-outline" onClick={() => setRemoveEmpModal(null)}>Cancelar</button>
-              <button className="button button-danger" onClick={confirmRemoveEmployee}>Quitar empleado</button>
+              <button className="button button-danger" onClick={confirmRemoveEmployee}>Desactivar</button>
             </div>
           </dialog>
         </>
       )}
 
       {/* ── Modal: eliminar encuesta ── */}
-      {deleteSurveyModal && (
+      {/* ── Modal: respuestas de encuesta ── */}
+      {surveyResponsesModal && (
         <>
-          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setDeleteSurveyModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="delete-survey-modal-title">
-            <h3 id="delete-survey-modal-title">Eliminar encuesta</h3>
+          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setSurveyResponsesModal(null)} />
+          <dialog open className="modal-box" aria-labelledby="survey-responses-modal-title">
+            <h3 id="survey-responses-modal-title">Respuestas de encuesta</h3>
+            {surveyResponses.length === 0 ? (
+              <p style={{ color: 'var(--muted)' }}>No hay respuestas registradas para este viaje.</p>
+            ) : (
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {surveyResponses.map((resp, i) => (
+                  <div key={i} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+                    <strong>{resp.texto_pregunta}</strong>
+                    <p style={{ marginTop: '0.5rem', color: 'var(--muted)' }}>
+                      {resp.valor_numero && `${resp.valor_numero} km`}
+                      {resp.texto_opcion && resp.texto_opcion}
+                      {resp.valor_texto && resp.valor_texto}
+                      {resp.valor_boolean !== null && resp.valor_boolean !== undefined && (resp.valor_boolean ? 'Sí' : 'No')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="button button-outline" onClick={() => setSurveyResponsesModal(null)}>Cerrar</button>
+            </div>
+          </dialog>
+        </>
+      )}
+
+      {/* ── Modal: historial de pregunta ── */}
+      {questionHistoryModal && (
+        <>
+          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setQuestionHistoryModal(null)} />
+          <dialog open className="modal-box" aria-labelledby="q-history-title">
+            <h3 id="q-history-title" style={{ marginBottom: '0.25rem' }}>Historial de respuestas</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginTop: 0, marginBottom: '1rem' }}>
+              {questionHistoryModal.texto}
+            </p>
+            {questionHistory.length === 0 ? (
+              <p style={{ color: 'var(--muted)' }}>No hay respuestas registradas para esta pregunta.</p>
+            ) : (
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {questionHistory.map((resp, i) => {
+                  const valor = resp.valor_texto || resp.valor_opcion
+                    || (resp.valor_numero != null ? String(resp.valor_numero) : null)
+                    || (resp.valor_boolean != null ? (resp.valor_boolean ? 'Sí' : 'No') : null);
+                  return (
+                    <div key={resp.id_respuesta || i} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                        <strong>{resp.nombre_conductor || '—'}</strong>
+                        <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                          {resp.fecha_salida ? new Date(resp.fecha_salida).toLocaleDateString('es-ES') : '—'}
+                        </span>
+                      </div>
+                      <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>
+                        {[resp.marca, resp.modelo, resp.matricula ? `(${resp.matricula})` : null].filter(Boolean).join(' ')}
+                      </span>
+                      <p style={{ margin: '0.25rem 0 0', color: valor ? 'inherit' : 'var(--muted)', fontStyle: valor ? 'normal' : 'italic' }}>
+                        {valor || 'Sin respuesta'}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="button button-outline" onClick={() => setQuestionHistoryModal(null)}>Cerrar</button>
+            </div>
+          </dialog>
+        </>
+      )}
+
+      {/* ── Modal: editar pregunta ── */}
+      {editQuestionModal && (
+        <>
+          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setEditQuestionModal(null)} />
+          <dialog open className="modal-box" aria-labelledby="edit-question-modal-title">
+            <h3 id="edit-question-modal-title">Editar pregunta</h3>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+              <strong>Tipo:</strong> {editQuestionModal.tipo_respuesta}
+            </p>
+            <div className="field">
+              <label htmlFor="question-text">Texto de la pregunta</label>
+              <textarea
+                id="question-text"
+                value={editingText}
+                onChange={(e) => setEditingText(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid var(--border)',
+                  borderRadius: '0.25rem',
+                  fontFamily: 'inherit',
+                  minHeight: '100px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="button button-outline" onClick={() => setEditQuestionModal(null)}>Cancelar</button>
+              <button className="button button-primary" onClick={handleUpdateQuestion}>Guardar</button>
+            </div>
+          </dialog>
+        </>
+      )}
+
+      {/* ── Modal: confirmar eliminación de pregunta ── */}
+      {confirmDeleteQuestionModal && (
+        <>
+          <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setConfirmDeleteQuestionModal(null)} />
+          <dialog open className="modal-box" aria-labelledby="confirm-delete-question-title">
+            <h3 id="confirm-delete-question-title">Desactivar pregunta</h3>
             <p>
-              ¿Seguro que quieres eliminar la encuesta de <strong>{deleteSurveyModal.surveyName}</strong>?
-              Los viajes completados conservarán sus respuestas, pero los nuevos viajes no tendrán encuesta.
+              ¿Seguro que quieres desactivar esta pregunta? Los datos históricos se conservarán.
             </p>
             <div className="modal-actions">
-              <button className="button button-outline" onClick={() => setDeleteSurveyModal(null)}>Cancelar</button>
-              <button className="button button-danger" onClick={confirmDeleteSurvey}>Eliminar encuesta</button>
+              <button className="button button-outline" onClick={() => setConfirmDeleteQuestionModal(null)}>Cancelar</button>
+              <button className="button button-danger" onClick={confirmDeleteQuestion}>Desactivar</button>
             </div>
           </dialog>
         </>
@@ -485,6 +648,7 @@ export default function DashboardAdmin({ data: initialData }) {
         onVehicleAdded={onVehicleAdded}
         onEmployeeAdded={onEmployeeAdded}
         initialTab={drawerTab}
+        companyLocation={company.location}
       />
 
       <SurveyBuilderModal
@@ -493,13 +657,9 @@ export default function DashboardAdmin({ data: initialData }) {
         companyVehicles={companyVehicles}
         onSurveyCreated={() => {
           setFlash({ type: 'success', message: 'Encuesta creada y asignada.' });
-          loadSurveys();
+          setSurveyModalOpen(false);
         }}
       />
     </Layout>
   );
 }
-
-DashboardAdmin.propTypes = {
-  data: PropTypes.object.isRequired,
-};

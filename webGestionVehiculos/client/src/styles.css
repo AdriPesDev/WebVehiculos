@@ -36,6 +36,27 @@
   --warning: #f97316;
   --success: #16a34a;
   --border: #e2e8f0;
+
+  /* Design Tokens */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 10px 20px rgba(15, 23, 42, 0.15);
+  --shadow-xl: 0 20px 40px rgba(15, 23, 42, 0.2);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-full: 999px;
+
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
 }
 
 * {
@@ -489,6 +510,10 @@ nav a:hover::after {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
+}
+
+.admin-card .button {
+  margin-top: 1.5rem;
 }
 
 .stat-number {
@@ -1065,9 +1090,9 @@ dialog.drawer::backdrop {
   margin-bottom: 0.5rem;
 }
 
-.modal-survey .field input,
+.modal-survey .field input:not([type="radio"]):not([type="checkbox"]),
 .modal-survey .field select,
-.field input,
+.field input:not([type="radio"]):not([type="checkbox"]),
 .field select {
   width: 100%;
   border: 1px solid var(--border);
@@ -1078,6 +1103,37 @@ dialog.drawer::backdrop {
   outline: none;
   color: var(--text);
   background-color: var(--surface);
+}
+
+/* ── Survey radio/boolean options ── */
+.survey-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.survey-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.survey-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.survey-option label {
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 400;
+  white-space: normal;
 }
 
 .modal-survey .field select,
@@ -1181,4 +1237,100 @@ dialog.drawer::backdrop {
   display: flex;
   gap: 0.5rem;
   white-space: nowrap;
+}
+
+/* ---- Reusable Utility Classes ---- */
+
+/* Empty states and centered messages */
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+  padding: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.empty-state-large {
+  padding: 2rem;
+  font-size: 1rem;
+}
+
+/* Table cell actions */
+.table-cell-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  align-items: center;
+}
+
+/* Select field wrapper */
+.select-field {
+  margin-bottom: var(--space-lg);
+  pointer-events: auto;
+}
+
+.select-field select {
+  pointer-events: auto;
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  transition: border-color var(--duration-fast);
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+.select-field select:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(26, 171, 227, 0.1);
+}
+
+/* Help text and descriptions */
+.field-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: var(--space-xs);
+}
+
+/* Textarea improvements */
+textarea {
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: var(--space-sm);
+  transition: border-color var(--duration-fast);
+  color: var(--text);
+  background-color: var(--surface);
+}
+
+textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(26, 171, 227, 0.1);
+}
+
+/* Flex utilities */
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+
+/* Padding utilities */
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+
+/* Section separators */
+.section-divider {
+  border-top: 1px solid var(--border);
+  margin: var(--space-xl) 0;
+  padding-top: var(--space-xl);
 }

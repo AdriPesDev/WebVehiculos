@@ -1,10 +1,11 @@
 import PropTypes from 'prop-types';
 
-export default function Badge({ states = [] }) {
-  const stateList = Array.isArray(states) ? states : [states];
-  
+export default function Badge({ states = [], estado = null }) {
+  const stateValue = estado || states;
+  const stateList = Array.isArray(stateValue) ? stateValue : [stateValue];
+
   const isDanger = stateList.includes('mantenimiento') || stateList.includes('maintenance');
-  const isWarning = stateList.includes('en_uso') || stateList.includes('ocupado');
+  const isWarning = stateList.includes('en_uso') || stateList.includes('ocupado') || stateList.includes('en uso');
   let cls = 'badge-success';
   if (isDanger) {
     cls = 'badge-danger';
@@ -20,4 +21,5 @@ Badge.propTypes = {
     PropTypes.arrayOf(PropTypes.string),
     PropTypes.string,
   ]),
+  estado: PropTypes.string,
 };
