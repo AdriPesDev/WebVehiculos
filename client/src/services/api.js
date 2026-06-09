@@ -17,10 +17,7 @@ async function request(path, opts = {}) {
   const data = await response.json();
 
   if (response.status === 401) {
-    // En /auth/me el 401 es normal (no hay sesión), no redirigir
-    if (path === "/auth/me") {
-      return null;
-    }
+    if (path === "/auth/me") return null;
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
     window.location.href = "/login";
@@ -64,8 +61,6 @@ export const api = {
   register: (nombre, email, password) =>
     post("/auth/register", { nombre, email, password }),
 
-  // AuthContext llama a api.me() y espera { user: {...} }
-  // Nuestra API devuelve el objeto directamente, así que lo envolvemos
   me: () =>
     get("/auth/me")
       .then((u) => (u ? { user: normalizeUsuario(u) } : { user: null }))
@@ -85,18 +80,13 @@ export const api = {
     const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
     if (!usuario) throw new Error("No autenticado");
 
-    // Si el usuario tiene rol de empleado/admin pero sin empresa,
-    // refresca el token para obtener el estado real de la BD
     if (["admin", "empleado"].includes(usuario.rol) && !usuario.id_empresa) {
       try {
         const refreshed = await post("/auth/refresh", {});
         if (refreshed?.token) {
           localStorage.setItem("token", refreshed.token);
           localStorage.setItem("usuario", JSON.stringify(refreshed.usuario));
-          // Si tras el refresh sigue sin empresa, tratar como sin_empresa
-          if (!refreshed.usuario?.id_empresa) {
-            return { role: "sin_empresa" };
-          }
+          if (!refreshed.usuario?.id_empresa) return { role: "sin_empresa" };
         }
       } catch {
         return { role: "sin_empresa" };
@@ -132,18 +122,11 @@ export const api = {
         get("/superadmin/empresas"),
         get("/superadmin/usuarios"),
       ]);
-      // Obtiene vehículos de todas las empresas
-      const vehiculos =
-        empresas.length > 0
-          ? await Promise.all(
-              empresas.map((e) => get(`/vehiculos`).catch(() => [])),
-            ).then((arrays) => arrays.flat())
-          : [];
       return {
         role: "superadmin",
         companies: empresas.map(normalizeEmpresa),
         users: usuarios.map(normalizeUsuario),
-        vehicles: vehiculos.map(normalizeVehiculo),
+        vehicles: [], // el superadmin no tiene empresa propia, los vehículos se ven por empresa
       };
     }
 
@@ -201,14 +184,20 @@ export const api = {
       .catch((e) => ({ ok: false, error: e.message })),
 
   // ── Vehículos ─────────────────────────────────────────────────────────────────
-  // Drawer envía { model, plate, capacity, location }
-  // Nuestra API espera { matricula, marca, modelo }
-  // Separamos model en marca + modelo si hay espacio, si no lo ponemos todo en modelo
-  addVehicle: ({ model, plate, capacity, location, companyId }) => {
+  // Drawer envía { model, plate, tipo, capacity, location }
+  // model se separa en marca + modelo por el primer espacio
+  addVehicle: ({ model, plate, tipo, capacity, location }) => {
     const partes = (model || "").trim().split(" ");
     const marca = partes.length > 1 ? partes[0] : "";
     const modelo = partes.length > 1 ? partes.slice(1).join(" ") : partes[0];
-    return post("/vehiculos", { matricula: plate, marca, modelo })
+    return post("/vehiculos", {
+      matricula: plate,
+      marca,
+      modelo,
+      tipo: tipo || null,
+      capacidad: capacity || null,
+      ubicacion: location || null,
+    })
       .then((r) => ({ ok: true, vehicle: normalizeVehiculo(r) }))
       .catch((e) => ({ ok: false, error: e.message }));
   },
@@ -218,14 +207,19 @@ export const api = {
       .then(() => ({ ok: true }))
       .catch((e) => ({ ok: false, error: e.message })),
 
+  // Usa el nuevo endpoint de detalle completo
   vehicleDetail: (id) =>
-    get(`/usos/activos`).then((usos) => {
-      const uso = usos.find((u) => u.id_vehiculo === parseInt(id));
-      return get(`/vehiculos/${id}`).then((v) => ({
-        vehicle: normalizeVehiculo(v),
-        activeTrip: uso ? normalizeUso(uso) : null,
-      }));
-    }),
+    get(`/vehiculos/${id}/detalle`)
+      .then((res) => ({
+        vehicle: normalizeVehiculo(res.vehicle),
+        company: normalizeEmpresa(res.company),
+        vehicleTrips: (res.vehicleTrips || []).map(normalizeUso),
+        activeTrip: res.activeTrip ? normalizeUso(res.activeTrip) : null,
+        canManageTrip: res.canManageTrip || false,
+        companyUsers: (res.companyUsers || []).map(normalizeUsuario),
+        maintenanceHistory: (res.maintenanceHistory || []).map(normalizeMant),
+      }))
+      .catch((e) => ({ error: e.message })),
 
   resetVehicleState: (id) =>
     put(`/vehiculos/${id}`, { estado: "disponible" })
@@ -259,18 +253,15 @@ export const api = {
       .catch((e) => ({ ok: false, error: e.message })),
 
   // ── Empleados ─────────────────────────────────────────────────────────────────
-  // Drawer envía { name, email, password, role }
+  // Ahora usa el nuevo POST /api/usuarios que asigna empresa directamente
   addEmployee: ({ name, email, password, role }) =>
-    post("/auth/register", { nombre: name, email, password })
-      .then(async (r) => {
-        // Si el rol pedido es admin, actualizamos después del registro
-        if (role === "admin" && r.id_usuario) {
-          await put(`/usuarios/${r.id_usuario}`, { rol: "admin" }).catch(
-            () => {},
-          );
-        }
-        return { ok: true, user: normalizeUsuario(r) };
-      })
+    post("/usuarios", {
+      nombre: name,
+      email,
+      password,
+      rol: role || "empleado",
+    })
+      .then((r) => ({ ok: true, user: normalizeUsuario(r) }))
       .catch((e) => ({ ok: false, error: e.message })),
 
   removeEmployee: (id) =>
@@ -282,8 +273,14 @@ export const api = {
     get("/usuarios/companeros").then((lista) => lista.map(normalizeUsuario)),
 
   // ── Viajes ────────────────────────────────────────────────────────────────────
-  // DashboardEmpleado llama checkin(vehicleId) — buscamos el uso activo de ese vehículo
-  checkin: (vehicleId) =>
+  // VehicleDetail llama checkin con id_uso directamente
+  checkin: (id_uso) =>
+    put(`/usos/${id_uso}/entrada`, {})
+      .then((r) => ({ ok: true, ...r }))
+      .catch((e) => ({ ok: false, error: e.message })),
+
+  // DashboardEmpleado llama checkin con vehicleId — lo resolvemos buscando el uso activo
+  checkinByVehicle: (vehicleId) =>
     get("/usos/activos")
       .then((usos) => {
         const uso = usos.find((u) => u.id_vehiculo === parseInt(vehicleId));
@@ -366,6 +363,7 @@ function normalizeVehiculo(v) {
     model: [v.marca, v.modelo].filter(Boolean).join(" ") || "—",
     marca: v.marca,
     modelo: v.modelo,
+    tipo: v.tipo || "—",
     company_id: v.id_empresa,
     states: [v.estado].filter(Boolean),
     location: v.ubicacion || "—",
@@ -377,8 +375,8 @@ function normalizeUsuario(u) {
   if (!u) return {};
   return {
     id: u.id_usuario,
-    name: u.nombre, // la UI usa .name
-    nombre: u.nombre, // por si algún sitio usa .nombre
+    name: u.nombre,
+    nombre: u.nombre,
     email: u.email,
     role: u.rol,
     rol: u.rol,
@@ -417,7 +415,19 @@ function normalizeUso(u) {
       id: p.id_usuario,
       name: p.nombre,
       userId: p.id_usuario,
+      user_id: p.id_usuario,
     })),
+  };
+}
+
+function normalizeMant(m) {
+  if (!m) return {};
+  return {
+    id: m.id_mantenimiento,
+    start: m.fecha_inicio,
+    end: m.fecha_fin || null,
+    reason: m.descripcion || "—",
+    invoicePath: null,
   };
 }
 
@@ -437,6 +447,6 @@ function normalizePregunta(p) {
     })),
     vehicleName:
       (p.vehiculos || []).map((v) => v.matricula).join(", ") || "Global",
-    questions: p.opciones || [], // compatibilidad con SurveyBuilderModal
+    questions: p.opciones || [],
   };
 }

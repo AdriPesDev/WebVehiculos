@@ -6,24 +6,25 @@ import Alert from './Alert';
 export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded, initialTab = 'vehicle', isSuperadmin = false, companies = [] }) {
   // Vehicle form state
   const [vCompanyId, setVCompanyId] = useState('');
-  const [vModel, setVModel] = useState('');
-  const [vPlate, setVPlate] = useState('');
-  const [vCapacity, setVCapacity] = useState('');
-  const [vLocation, setVLocation] = useState('');
-  const [vError, setVError] = useState(null);
-  const [vLoading, setVLoading] = useState(false);
+  const [vModel, setVModel]         = useState('');
+  const [vPlate, setVPlate]         = useState('');
+  const [vTipo, setVTipo]           = useState('');
+  const [vCapacity, setVCapacity]   = useState('');
+  const [vLocation, setVLocation]   = useState('');
+  const [vError, setVError]         = useState(null);
+  const [vLoading, setVLoading]     = useState(false);
 
   // Employee form state
   const [eCompanyId, setECompanyId] = useState('');
-  const [eName, setEName] = useState('');
-  const [eEmail, setEEmail] = useState('');
-  const [ePassword, setEPassword] = useState('');
-  const [eRole, setERole] = useState('empleado');
-  const [eError, setEError] = useState(null);
-  const [eLoading, setELoading] = useState(false);
+  const [eName, setEName]           = useState('');
+  const [eEmail, setEEmail]         = useState('');
+  const [ePassword, setEPassword]   = useState('');
+  const [eRole, setERole]           = useState('empleado');
+  const [eError, setEError]         = useState(null);
+  const [eLoading, setELoading]     = useState(false);
 
   function resetVehicleForm() {
-    setVModel(''); setVPlate(''); setVCapacity(''); setVLocation('');
+    setVModel(''); setVPlate(''); setVTipo(''); setVCapacity(''); setVLocation('');
   }
 
   function resetEmployeeForm() {
@@ -38,7 +39,13 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
       return;
     }
     setVLoading(true);
-    const body = { model: vModel, plate: vPlate, capacity: vCapacity, location: vLocation };
+    const body = {
+      model:    vModel,
+      plate:    vPlate,
+      tipo:     vTipo     || null,
+      capacity: vCapacity || null,
+      location: vLocation || null,
+    };
     if (isSuperadmin) body.companyId = vCompanyId;
     const res = await api.addVehicle(body);
     setVLoading(false);
@@ -98,6 +105,7 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
           display: 'flex', flexDirection: 'column',
           animation: 'slideInRight 0.3s cubic-bezier(0.4,0,0.2,1)',
           padding: 0, border: 'none', margin: 0,
+          overflowY: 'auto',
         }}
       >
         <div className="drawer-header">
@@ -109,6 +117,7 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
           {isVehicle ? (
             <form onSubmit={handleAddVehicle} className="auth-form">
               <Alert type="error" message={vError} onClose={() => setVError(null)} />
+
               {isSuperadmin && (
                 <div className="field">
                   <label htmlFor="v-company">Empresa</label>
@@ -120,22 +129,64 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
                   </select>
                 </div>
               )}
+
               <div className="field">
-                <label htmlFor="v-model">Modelo</label>
-                <input id="v-model" value={vModel} onChange={e => setVModel(e.target.value)} required placeholder="Ej: Furgoneta Sprinter" />
+                <label htmlFor="v-plate">Matrícula *</label>
+                <input
+                  id="v-plate"
+                  value={vPlate}
+                  onChange={e => setVPlate(e.target.value)}
+                  required
+                  placeholder="Ej: 1234 ABC"
+                />
               </div>
+
               <div className="field">
-                <label htmlFor="v-plate">Matrícula</label>
-                <input id="v-plate" value={vPlate} onChange={e => setVPlate(e.target.value)} required placeholder="Ej: 1234 ABC" />
+                <label htmlFor="v-model">Marca y modelo</label>
+                <input
+                  id="v-model"
+                  value={vModel}
+                  onChange={e => setVModel(e.target.value)}
+                  placeholder="Ej: Renault Kangoo"
+                />
+                <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                  La primera palabra se usará como marca
+                </span>
               </div>
+
               <div className="field">
-                <label htmlFor="v-capacity">Capacidad</label>
-                <input id="v-capacity" value={vCapacity} onChange={e => setVCapacity(e.target.value)} required placeholder="Ej: 1.5t" />
+                <label htmlFor="v-tipo">Tipo de vehículo</label>
+                <input
+                  id="v-tipo"
+                  value={vTipo}
+                  onChange={e => setVTipo(e.target.value)}
+                  placeholder="Ej: Furgoneta, Turismo, 4x4, Camión..."
+                />
               </div>
+
               <div className="field">
-                <label htmlFor="v-location">Ubicación</label>
-                <input id="v-location" value={vLocation} onChange={e => setVLocation(e.target.value)} required placeholder="Ej: Madrid" />
+                <label htmlFor="v-capacity">Número de plazas</label>
+                <input
+                  id="v-capacity"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={vCapacity}
+                  onChange={e => setVCapacity(e.target.value)}
+                  placeholder="Ej: 5"
+                />
               </div>
+
+              <div className="field">
+                <label htmlFor="v-location">Ubicación habitual</label>
+                <input
+                  id="v-location"
+                  value={vLocation}
+                  onChange={e => setVLocation(e.target.value)}
+                  placeholder="Ej: Sede central, Almacén norte..."
+                />
+              </div>
+
               <button type="submit" className="button button-primary" disabled={vLoading}>
                 {vLoading ? 'Añadiendo...' : 'Agregar vehículo'}
               </button>
@@ -143,6 +194,7 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
           ) : (
             <form onSubmit={handleAddEmployee} className="auth-form">
               <Alert type="error" message={eError} onClose={() => setEError(null)} />
+
               {isSuperadmin && (
                 <div className="field">
                   <label htmlFor="e-company">Empresa</label>
@@ -154,18 +206,43 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
                   </select>
                 </div>
               )}
+
               <div className="field">
                 <label htmlFor="e-name">Nombre completo</label>
-                <input id="e-name" value={eName} onChange={e => setEName(e.target.value)} required placeholder="Nombre y apellido" />
+                <input
+                  id="e-name"
+                  value={eName}
+                  onChange={e => setEName(e.target.value)}
+                  required
+                  placeholder="Nombre y apellido"
+                />
               </div>
+
               <div className="field">
                 <label htmlFor="e-email">Correo electrónico</label>
-                <input id="e-email" type="email" value={eEmail} onChange={e => setEEmail(e.target.value)} required placeholder="usuario@empresa.com" />
+                <input
+                  id="e-email"
+                  type="email"
+                  value={eEmail}
+                  onChange={e => setEEmail(e.target.value)}
+                  required
+                  placeholder="usuario@empresa.com"
+                />
               </div>
+
               <div className="field">
                 <label htmlFor="e-password">Contraseña</label>
-                <input id="e-password" type="password" value={ePassword} onChange={e => setEPassword(e.target.value)} required minLength={8} placeholder="Mínimo 8 caracteres" />
+                <input
+                  id="e-password"
+                  type="password"
+                  value={ePassword}
+                  onChange={e => setEPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  placeholder="Mínimo 8 caracteres"
+                />
               </div>
+
               <fieldset className="field" style={{ border: 'none', margin: 0, padding: 0 }}>
                 <legend style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.4rem' }}>Rol</legend>
                 <div className="seg-control">
@@ -185,11 +262,11 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
                   </button>
                 </div>
               </fieldset>
+
               <button type="submit" className="button button-primary" disabled={eLoading}>
-                {(() => {
-                  if (eLoading) return 'Añadiendo...';
-                  return eRole === 'admin' ? 'Agregar administrador' : 'Agregar empleado';
-                })()}
+                {eLoading
+                  ? 'Añadiendo...'
+                  : eRole === 'admin' ? 'Agregar administrador' : 'Agregar empleado'}
               </button>
             </form>
           )}
@@ -200,11 +277,11 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
 }
 
 Drawer.propTypes = {
-  open: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  initialTab: PropTypes.string,
-  onVehicleAdded: PropTypes.func.isRequired,
+  open:            PropTypes.bool.isRequired,
+  onClose:         PropTypes.func.isRequired,
+  initialTab:      PropTypes.string,
+  onVehicleAdded:  PropTypes.func.isRequired,
   onEmployeeAdded: PropTypes.func.isRequired,
-  isSuperadmin: PropTypes.bool,
-  companies: PropTypes.array,
+  isSuperadmin:    PropTypes.bool,
+  companies:       PropTypes.array,
 };
