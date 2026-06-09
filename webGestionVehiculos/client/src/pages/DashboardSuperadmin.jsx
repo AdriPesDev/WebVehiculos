@@ -166,7 +166,7 @@ export default function DashboardSuperadmin() {
     );
   }
 
-  const { companies, users, stats } = data;
+  const { companies = [], users = [], stats = {} } = data || {};
 
   return (
     <Layout>
