@@ -7,48 +7,76 @@ import Badge from '../components/Badge';
 import Alert from '../components/Alert';
 import Drawer from '../components/Drawer';
 import SurveyBuilderModal from '../components/SurveyBuilderModal';
+import VehicleEditModal from '../components/VehicleEditModal';
 
 export default function DashboardAdmin({ data: initialData }) {
-  const [data, setData] = useState(initialData);
-  const [flash, setFlash] = useState(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerTab, setDrawerTab] = useState('vehicle');
+  const [data, setData]                   = useState(initialData);
+  const [flash, setFlash]                 = useState(null);
+  const [drawerOpen, setDrawerOpen]       = useState(false);
+  const [drawerTab, setDrawerTab]         = useState('vehicle');
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
-  const [companySurveys, setCompanySurveys] = useState([]);
+  const [companySurveys, setCompanySurveys]   = useState([]);
   const [deleteSurveyModal, setDeleteSurveyModal] = useState(null);
+  const [editVehicleModal, setEditVehicleModal]   = useState(null);
 
-  const [approveModal, setApproveModal] = useState(null);
-  const [maintModal, setMaintModal] = useState(null);
-  const [maintLoading, setMaintLoading] = useState(false);
+  // Historial
+  const [historial, setHistorial]           = useState([]);
+  const [historialCargado, setHistorialCargado] = useState(false);
+  const [expandedTrip, setExpandedTrip]     = useState(null);
+  const [tripEncuestas, setTripEncuestas]   = useState({});
+
+  const [approveModal, setApproveModal]   = useState(null);
+  const [maintModal, setMaintModal]       = useState(null);
+  const [maintLoading, setMaintLoading]   = useState(false);
   const [endMaintModal, setEndMaintModal] = useState(null);
-  const [invoiceFile, setInvoiceFile] = useState(null);
+  const [invoiceFile, setInvoiceFile]     = useState(null);
+  const [deleteModal, setDeleteModal]     = useState(null);
+  const [removeEmpModal, setRemoveEmpModal] = useState(null);
+
   const { company, companyVehicles, companyUsers, pendingRequests, activeTrips = [] } = data;
 
-  const [deleteModal, setDeleteModal] = useState(null);
-  const [removeEmpModal, setRemoveEmpModal] = useState(null);
+  useEffect(() => { loadSurveys(); }, []);
 
   async function loadSurveys() {
     const res = await api.getSurveys();
-    if (res.surveys) {
-      setCompanySurveys(res.surveys);
+    if (res.surveys) setCompanySurveys(res.surveys);
+  }
+
+  async function loadHistorial() {
+    if (historialCargado) return;
+    try {
+      const usos = await api.usoHistorial();
+      setHistorial(usos);
+      setHistorialCargado(true);
+    } catch {
+      setFlash({ type: 'error', message: 'Error al cargar el historial.' });
     }
   }
 
-  useEffect(() => {
-    loadSurveys();
-  }, []);
+  async function toggleTrip(tripId) {
+    if (expandedTrip === tripId) {
+      setExpandedTrip(null);
+      return;
+    }
+    setExpandedTrip(tripId);
+    if (!tripEncuestas[tripId]) {
+      try {
+        const enc = await api.getEncuestaViaje(tripId);
+        setTripEncuestas(prev => ({ ...prev, [tripId]: enc?.preguntas || [] }));
+      } catch {
+        setTripEncuestas(prev => ({ ...prev, [tripId]: [] }));
+      }
+    }
+  }
 
   async function confirmApprove(role) {
     const { requestId, userName } = approveModal;
     setApproveModal(null);
     const res = await api.approveRequest(requestId, role);
     if (res.ok) {
-      const label = role === 'admin' ? 'administrador' : 'empleado';
-      setFlash({ type: 'success', message: `${userName} aprobado como ${label}.` });
+      setFlash({ type: 'success', message: `${userName} aprobado como ${role === 'admin' ? 'administrador' : 'empleado'}.` });
       setData(d => ({ ...d, pendingRequests: d.pendingRequests.filter(r => r.id !== requestId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
+    } else setFlash({ type: 'error', message: res.error });
   }
 
   async function handleReject(requestId) {
@@ -56,9 +84,7 @@ export default function DashboardAdmin({ data: initialData }) {
     if (res.ok) {
       setFlash({ type: 'success', message: 'Solicitud rechazada.' });
       setData(d => ({ ...d, pendingRequests: d.pendingRequests.filter(r => r.id !== requestId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
+    } else setFlash({ type: 'error', message: res.error });
   }
 
   async function confirmMaintenance() {
@@ -70,14 +96,7 @@ export default function DashboardAdmin({ data: initialData }) {
       setFlash({ type: 'success', message: 'Mantenimiento iniciado.' });
       const updated = await api.dashboard();
       setData(updated);
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
-  }
-
-  function handleEndMaintenance(vehicleId, vehicleName) {
-    setInvoiceFile(null);
-    setEndMaintModal({ vehicleId, vehicleName });
+    } else setFlash({ type: 'error', message: res.error });
   }
 
   async function confirmEndMaintenance() {
@@ -91,9 +110,7 @@ export default function DashboardAdmin({ data: initialData }) {
       setFlash({ type: 'success', message: 'Mantenimiento finalizado.' });
       const updated = await api.dashboard();
       setData(updated);
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
+    } else setFlash({ type: 'error', message: res.error });
   }
 
   async function confirmDelete() {
@@ -103,9 +120,7 @@ export default function DashboardAdmin({ data: initialData }) {
     if (res.ok) {
       setFlash({ type: 'success', message: 'Vehículo eliminado.' });
       setData(d => ({ ...d, companyVehicles: d.companyVehicles.filter(v => v.id !== vehicleId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
+    } else setFlash({ type: 'error', message: res.error });
   }
 
   async function confirmRemoveEmployee() {
@@ -115,9 +130,7 @@ export default function DashboardAdmin({ data: initialData }) {
     if (res.ok) {
       setFlash({ type: 'success', message: 'Empleado retirado.' });
       setData(d => ({ ...d, companyUsers: d.companyUsers.filter(u => u.id !== userId) }));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
+    } else setFlash({ type: 'error', message: res.error });
   }
 
   async function confirmDeleteSurvey() {
@@ -125,26 +138,30 @@ export default function DashboardAdmin({ data: initialData }) {
     setDeleteSurveyModal(null);
     const res = await api.deleteSurvey(surveyId);
     if (res.ok) {
-      setFlash({ type: 'success', message: 'Encuesta eliminada.' });
+      setFlash({ type: 'success', message: 'Pregunta eliminada.' });
       setCompanySurveys(s => s.filter(srv => srv.id !== surveyId));
-    } else {
-      setFlash({ type: 'error', message: res.error });
-    }
+    } else setFlash({ type: 'error', message: res.error });
   }
 
-  function openDrawer(tab) {
-    setDrawerTab(tab);
-    setDrawerOpen(true);
-  }
-
-  function onVehicleAdded(vehicle) {
-    setData(d => ({ ...d, companyVehicles: [...d.companyVehicles, vehicle] }));
-    setFlash({ type: 'success', message: 'Vehículo añadido.' });
-  }
-
-  function onEmployeeAdded(user) {
-    setData(d => ({ ...d, companyUsers: [...d.companyUsers, user] }));
-    setFlash({ type: 'success', message: 'Empleado añadido.' });
+  function handleVehicleUpdated(vehicleActualizado) {
+    setData(d => ({
+      ...d,
+      companyVehicles: d.companyVehicles.map(v =>
+        v.id === vehicleActualizado.id_vehiculo
+          ? {
+              ...v,
+              plate:    vehicleActualizado.matricula,
+              model:    [vehicleActualizado.marca, vehicleActualizado.modelo].filter(Boolean).join(' ') || '—',
+              marca:    vehicleActualizado.marca,
+              modelo:   vehicleActualizado.modelo,
+              tipo:     vehicleActualizado.tipo     || '—',
+              capacity: vehicleActualizado.capacidad || '—',
+              location: vehicleActualizado.ubicacion || '—',
+            }
+          : v
+      ),
+    }));
+    setFlash({ type: 'success', message: 'Vehículo actualizado.' });
   }
 
   return (
@@ -156,20 +173,15 @@ export default function DashboardAdmin({ data: initialData }) {
             <p>Empresa: <strong>{company.name}</strong></p>
           </div>
           <div className="dashboard-actions">
-            <button className="button button-outline" onClick={() => openDrawer('vehicle')}>
-              🚗➕ Añadir vehículo
-            </button>
-            <button className="button button-outline" onClick={() => openDrawer('employee')}>
-              👷➕ Añadir empleado
-            </button>
-            <button className="button button-outline" onClick={() => setSurveyModalOpen(true)}>
-              📋➕ Añadir encuesta
-            </button>
+            <button className="button button-outline" onClick={() => { setDrawerTab('vehicle'); setDrawerOpen(true); }}>🚗➕ Añadir vehículo</button>
+            <button className="button button-outline" onClick={() => { setDrawerTab('employee'); setDrawerOpen(true); }}>👷➕ Añadir empleado</button>
+            <button className="button button-outline" onClick={() => setSurveyModalOpen(true)}>📋➕ Añadir encuesta</button>
           </div>
         </div>
 
         {flash && <Alert type={flash.type} message={flash.message} onClose={() => setFlash(null)} />}
 
+        {/* Tarjetas */}
         <div className="admin-cards">
           <div className="admin-card admin-card-vehicles">
             <h3>🚗 Vehículos</h3>
@@ -188,15 +200,12 @@ export default function DashboardAdmin({ data: initialData }) {
           </div>
         </div>
 
+        {/* Solicitudes pendientes */}
         {pendingRequests.length > 0 && (
           <div className="table-section">
             <h3>Solicitudes de membresía pendientes</h3>
             <table>
-              <thead>
-                <tr>
-                  <th>Usuario</th><th>Email</th><th>Fecha</th><th>Acciones</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Usuario</th><th>Email</th><th>Fecha</th><th>Acciones</th></tr></thead>
               <tbody>
                 {pendingRequests.map(r => (
                   <tr key={r.id}>
@@ -215,49 +224,33 @@ export default function DashboardAdmin({ data: initialData }) {
           </div>
         )}
 
+        {/* Vehículos */}
         <div className="table-section">
           <h3>Vehículos de la empresa</h3>
           <table>
-            <thead>
-              <tr>
-                <th>Modelo</th><th>Matrícula</th><th>Capacidad</th><th>Estado</th><th>Ubicación</th><th>Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Modelo</th><th>Matrícula</th><th>Tipo</th><th>Plazas</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
               {companyVehicles.length === 0 && (
                 <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay vehículos en la flota todavía.</td></tr>
               )}
               {companyVehicles.map(v => {
                 const states = v.states || [];
-                const inMaint = states.includes('mantenimiento') || states.includes('maintenance');
+                const inMaint = states.includes('mantenimiento');
                 return (
                   <tr key={v.id}>
                     <td>{v.model}</td>
                     <td>{v.plate}</td>
-                    <td>{v.capacity}</td>
+                    <td>{v.tipo !== '—' ? v.tipo : '—'}</td>
+                    <td>{v.capacity !== '—' ? v.capacity : '—'}</td>
                     <td><Badge states={states} /></td>
-                    <td>{v.location}</td>
                     <td className="table-actions">
                       <Link to={`/vehicle/${v.id}`} className="button button-small button-outline">Detalles</Link>
-                      {inMaint ? (
-                        <button className="button button-small button-warning" disabled={maintLoading} onClick={() => handleEndMaintenance(v.id, v.model)}>
-                          Acabar mant.
-                        </button>
-                      ) : (
-                        <button
-                          className="button button-small button-warning"
-                          disabled={maintLoading}
-                          onClick={() => setMaintModal({ vehicleId: v.id, vehicleName: v.model, reason: '' })}
-                        >
-                          Mantenimiento
-                        </button>
-                      )}
-                      <button
-                        className="button button-small button-danger"
-                        onClick={() => setDeleteModal({ vehicleId: v.id, vehicleName: v.model })}
-                      >
-                        Eliminar
-                      </button>
+                      <button className="button button-small button-outline" onClick={() => setEditVehicleModal(v)}>✏️ Editar</button>
+                      {inMaint
+                        ? <button className="button button-small button-warning" disabled={maintLoading} onClick={() => setEndMaintModal({ vehicleId: v.id, vehicleName: v.model })}>Fin mant.</button>
+                        : <button className="button button-small button-warning" disabled={maintLoading} onClick={() => setMaintModal({ vehicleId: v.id, vehicleName: v.model, reason: '' })}>Mantenimiento</button>
+                      }
+                      <button className="button button-small button-danger" onClick={() => setDeleteModal({ vehicleId: v.id, vehicleName: v.model })}>Eliminar</button>
                     </td>
                   </tr>
                 );
@@ -266,14 +259,11 @@ export default function DashboardAdmin({ data: initialData }) {
           </table>
         </div>
 
+        {/* Empleados */}
         <div className="table-section">
           <h3>Empleados de la empresa</h3>
           <table>
-            <thead>
-              <tr>
-                <th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th></tr></thead>
             <tbody>
               {companyUsers.length === 0 && (
                 <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay trabajadores en la empresa todavía.</td></tr>
@@ -282,12 +272,10 @@ export default function DashboardAdmin({ data: initialData }) {
                 <tr key={u.id}>
                   <td>{u.name}</td>
                   <td>{u.email}</td>
-                  <td><span className="badge">{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</span></td>
+                  <td><span className="badge">{u.role}</span></td>
                   <td>
                     {u.role === 'empleado' && (
-                      <button className="button button-small button-danger" onClick={() => setRemoveEmpModal({ userId: u.id, userName: u.name })}>
-                        Quitar
-                      </button>
+                      <button className="button button-small button-danger" onClick={() => setRemoveEmpModal({ userId: u.id, userName: u.name })}>Quitar</button>
                     )}
                   </td>
                 </tr>
@@ -296,29 +284,24 @@ export default function DashboardAdmin({ data: initialData }) {
           </table>
         </div>
 
+        {/* Encuestas configuradas */}
         <div className="table-section">
-          <h3>Encuestas de empresa</h3>
+          <h3>Preguntas de encuesta</h3>
           <table>
-            <thead>
-              <tr>
-                <th>Vehículo</th><th>Nº Preguntas</th><th>Fecha creación</th><th>Estado</th><th>Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Pregunta</th><th>Tipo</th><th>Vehículos</th><th>Obligatoria</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>
               {companySurveys.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay encuestas creadas todavía.</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay preguntas configuradas todavía.</td></tr>
               )}
               {companySurveys.map(s => (
                 <tr key={s.id}>
+                  <td>{s.text}</td>
+                  <td><span className="badge">{s.type}</span></td>
                   <td>{s.vehicleName}</td>
-                  <td>{s.questions.length}</td>
-                  <td>{new Date(s.createdAt).toLocaleDateString('es-ES')}</td>
+                  <td>{s.required ? '✓' : '—'}</td>
                   <td><span className={`badge ${s.active ? 'badge-success' : 'badge-warning'}`}>{s.active ? 'Activa' : 'Inactiva'}</span></td>
                   <td>
-                    <button
-                      className="button button-small button-danger"
-                      onClick={() => setDeleteSurveyModal({ surveyId: s.id, surveyName: s.vehicleName })}
-                    >
+                    <button className="button button-small button-danger" onClick={() => setDeleteSurveyModal({ surveyId: s.id, surveyName: s.text })}>
                       Eliminar
                     </button>
                   </td>
@@ -328,44 +311,121 @@ export default function DashboardAdmin({ data: initialData }) {
           </table>
         </div>
 
+        {/* Viajes activos */}
         {activeTrips.length > 0 && (
           <div className="table-section">
             <h3>Viajes en curso ({activeTrips.length})</h3>
             <table>
-              <thead>
-                <tr>
-                  <th>Vehículo</th><th>Matrícula</th><th>Conductor</th><th>Destino</th><th>Salida</th><th>Pasajeros</th><th>Acciones</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Vehículo</th><th>Matrícula</th><th>Conductor</th><th>Salida</th><th>Pasajeros</th><th>Acciones</th></tr></thead>
               <tbody>
                 {activeTrips.map(t => (
                   <tr key={t.id}>
                     <td>{t.vehicleModel}</td>
                     <td>{t.vehiclePlate}</td>
                     <td>{t.driverName}</td>
-                    <td>{t.destination || '—'}</td>
                     <td>{new Date(t.checkoutTime).toLocaleString('es-ES')}</td>
                     <td>{t.passengers?.length ?? 0}</td>
-                    <td>
-                      <Link to={`/vehicle/${t.vehicle_id}`} className="button button-small button-outline">
-                        Gestionar
-                      </Link>
-                    </td>
+                    <td><Link to={`/vehicle/${t.vehicle_id}`} className="button button-small button-outline">Gestionar</Link></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
+
+        {/* Historial de viajes */}
+        <div className="table-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0 }}>Historial de viajes</h3>
+            {!historialCargado && (
+              <button className="button button-outline" onClick={loadHistorial}>Cargar historial</button>
+            )}
+          </div>
+          {historialCargado && (
+            <table>
+              <thead><tr><th></th><th>Vehículo</th><th>Conductor</th><th>Salida</th><th>Entrada</th><th>Pasajeros</th><th>Estado</th></tr></thead>
+              <tbody>
+                {historial.length === 0 && (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>Sin viajes registrados.</td></tr>
+                )}
+                {historial.map(t => (
+                  <>
+                    <tr key={t.id} style={{ cursor: 'pointer' }} onClick={() => toggleTrip(t.id)}>
+                      <td style={{ width: 32, textAlign: 'center' }}>
+                        {expandedTrip === t.id ? '▾' : '▸'}
+                      </td>
+                      <td>{t.vehicleModel} · {t.vehiclePlate}</td>
+                      <td>{t.driverName}</td>
+                      <td>{t.checkoutTime ? new Date(t.checkoutTime).toLocaleString('es-ES') : '—'}</td>
+                      <td>{t.checkinTime  ? new Date(t.checkinTime).toLocaleString('es-ES')  : '—'}</td>
+                      <td>{t.passengers?.length ?? 0}</td>
+                      <td>
+                        <span className={`badge ${t.status === 'active' ? 'badge-warning' : 'badge-success'}`}>
+                          {t.status === 'active' ? 'En curso' : 'Completado'}
+                        </span>
+                      </td>
+                    </tr>
+                    {expandedTrip === t.id && (
+                      <tr key={`${t.id}-detail`}>
+                        <td colSpan={7} style={{ background: 'var(--bg)', padding: '1rem 1.5rem' }}>
+                          {/* Pasajeros */}
+                          {t.passengers?.length > 0 && (
+                            <div style={{ marginBottom: '0.75rem' }}>
+                              <strong>Pasajeros:</strong> {t.passengers.map(p => p.name).join(', ')}
+                            </div>
+                          )}
+                          {/* Respuestas de encuesta */}
+                          {tripEncuestas[t.id] === undefined ? (
+                            <p style={{ color: 'var(--muted)', margin: 0 }}>Cargando encuesta...</p>
+                          ) : tripEncuestas[t.id].length === 0 ? (
+                            <p style={{ color: 'var(--muted)', margin: 0 }}>Sin preguntas de encuesta para este viaje.</p>
+                          ) : (
+                            <div>
+                              <strong style={{ display: 'block', marginBottom: '0.5rem' }}>Respuestas de encuesta:</strong>
+                              <table style={{ width: '100%', fontSize: '0.88rem' }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ textAlign: 'left', paddingRight: '1rem' }}>Pregunta</th>
+                                    <th style={{ textAlign: 'left' }}>Respuesta</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {tripEncuestas[t.id].map(q => (
+                                    <tr key={q.id_pregunta}>
+                                      <td style={{ paddingRight: '1rem', paddingBottom: '0.25rem' }}>{q.texto}</td>
+                                      <td style={{ paddingBottom: '0.25rem' }}>
+                                        {q.id_respuesta
+                                          ? (q.valor_texto ?? q.valor_numero ?? (q.valor_boolean !== null ? (q.valor_boolean ? 'Sí' : 'No') : null) ?? q.texto_opcion ?? '—')
+                                          : <span style={{ color: 'var(--muted)' }}>Sin respuesta</span>
+                                        }
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {!historialCargado && (
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>Pulsa "Cargar historial" para ver todos los viajes de la empresa.</p>
+          )}
+        </div>
       </section>
 
-      {/* ── Modal: aprobar solicitud ── */}
+      {/* Modales */}
       {approveModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setApproveModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="approve-modal-title">
-            <h3 id="approve-modal-title">Aprobar solicitud</h3>
-            <p>¿Con qué rol quieres añadir a <strong>{approveModal.userName}</strong> a la empresa?</p>
+          <dialog open className="modal-box">
+            <h3>Aprobar solicitud</h3>
+            <p>¿Con qué rol quieres añadir a <strong>{approveModal.userName}</strong>?</p>
             <div className="modal-actions">
               <button className="button button-outline" onClick={() => setApproveModal(null)}>Cancelar</button>
               <button className="button button-outline" onClick={() => confirmApprove('empleado')}>Empleado</button>
@@ -375,24 +435,17 @@ export default function DashboardAdmin({ data: initialData }) {
         </>
       )}
 
-      {/* ── Modal: finalizar mantenimiento ── */}
       {endMaintModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setEndMaintModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="endmaint-modal-title">
-            <h3 id="endmaint-modal-title">Finalizar mantenimiento</h3>
+          <dialog open className="modal-box">
+            <h3>Finalizar mantenimiento</h3>
             <p>Vehículo: <strong>{endMaintModal.vehicleName}</strong></p>
             <div className="field">
               <label htmlFor="invoice-file-admin" className="button button-outline file-btn">
                 📎 {invoiceFile ? invoiceFile.name : 'Adjuntar factura (opcional)'}
               </label>
-              <input
-                id="invoice-file-admin"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                style={{ display: 'none' }}
-                onChange={e => setInvoiceFile(e.target.files[0] || null)}
-              />
+              <input id="invoice-file-admin" type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }} onChange={e => setInvoiceFile(e.target.files[0] || null)} />
             </div>
             <div className="modal-actions">
               <button className="button button-outline" onClick={() => setEndMaintModal(null)}>Cancelar</button>
@@ -402,21 +455,13 @@ export default function DashboardAdmin({ data: initialData }) {
         </>
       )}
 
-      {/* ── Modal: motivo de mantenimiento ── */}
       {maintModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setMaintModal(null)} />
-
-          <dialog open className="modal-box" aria-labelledby="maint-modal-title">
-            <h3 id="maint-modal-title">Iniciar mantenimiento</h3>
+          <dialog open className="modal-box">
+            <h3>Iniciar mantenimiento</h3>
             <p>Vehículo: <strong>{maintModal.vehicleName}</strong></p>
-            <textarea
-              rows={3}
-              placeholder="Motivo del mantenimiento (opcional)"
-              value={maintModal.reason}
-              onChange={e => setMaintModal(m => ({ ...m, reason: e.target.value }))}
-              autoFocus
-            />
+            <textarea rows={3} placeholder="Motivo (opcional)" value={maintModal.reason} onChange={e => setMaintModal(m => ({ ...m, reason: e.target.value }))} autoFocus />
             <div className="modal-actions">
               <button className="button button-outline" onClick={() => setMaintModal(null)}>Cancelar</button>
               <button className="button button-warning" onClick={confirmMaintenance}>Iniciar mantenimiento</button>
@@ -425,16 +470,12 @@ export default function DashboardAdmin({ data: initialData }) {
         </>
       )}
 
-      {/* ── Modal: confirmar eliminación ── */}
       {deleteModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setDeleteModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="delete-modal-title">
-            <h3 id="delete-modal-title">Eliminar vehículo</h3>
-            <p>
-              ¿Seguro que quieres eliminar <strong>{deleteModal.vehicleName}</strong>?
-              Esta acción es permanente y no se puede deshacer.
-            </p>
+          <dialog open className="modal-box">
+            <h3>Eliminar vehículo</h3>
+            <p>¿Seguro que quieres eliminar <strong>{deleteModal.vehicleName}</strong>? Esta acción es permanente.</p>
             <div className="modal-actions">
               <button className="button button-outline" onClick={() => setDeleteModal(null)}>Cancelar</button>
               <button className="button button-danger" onClick={confirmDelete}>Eliminar</button>
@@ -443,16 +484,12 @@ export default function DashboardAdmin({ data: initialData }) {
         </>
       )}
 
-      {/* ── Modal: quitar empleado ── */}
       {removeEmpModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setRemoveEmpModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="remove-emp-modal-title">
-            <h3 id="remove-emp-modal-title">Quitar empleado</h3>
-            <p>
-              ¿Seguro que quieres quitar a <strong>{removeEmpModal.userName}</strong> de la empresa?
-              El empleado perderá el acceso y quedará sin empresa asignada.
-            </p>
+          <dialog open className="modal-box">
+            <h3>Quitar empleado</h3>
+            <p>¿Seguro que quieres quitar a <strong>{removeEmpModal.userName}</strong>? Quedará sin empresa asignada.</p>
             <div className="modal-actions">
               <button className="button button-outline" onClick={() => setRemoveEmpModal(null)}>Cancelar</button>
               <button className="button button-danger" onClick={confirmRemoveEmployee}>Quitar empleado</button>
@@ -461,29 +498,32 @@ export default function DashboardAdmin({ data: initialData }) {
         </>
       )}
 
-      {/* ── Modal: eliminar encuesta ── */}
       {deleteSurveyModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setDeleteSurveyModal(null)} />
-          <dialog open className="modal-box" aria-labelledby="delete-survey-modal-title">
-            <h3 id="delete-survey-modal-title">Eliminar encuesta</h3>
-            <p>
-              ¿Seguro que quieres eliminar la encuesta de <strong>{deleteSurveyModal.surveyName}</strong>?
-              Los viajes completados conservarán sus respuestas, pero los nuevos viajes no tendrán encuesta.
-            </p>
+          <dialog open className="modal-box">
+            <h3>Eliminar pregunta</h3>
+            <p>¿Seguro que quieres eliminar la pregunta <strong>"{deleteSurveyModal.surveyName}"</strong>?</p>
             <div className="modal-actions">
               <button className="button button-outline" onClick={() => setDeleteSurveyModal(null)}>Cancelar</button>
-              <button className="button button-danger" onClick={confirmDeleteSurvey}>Eliminar encuesta</button>
+              <button className="button button-danger" onClick={confirmDeleteSurvey}>Eliminar</button>
             </div>
           </dialog>
         </>
       )}
 
+      <VehicleEditModal
+        open={!!editVehicleModal}
+        vehicle={editVehicleModal}
+        onClose={() => setEditVehicleModal(null)}
+        onUpdated={handleVehicleUpdated}
+      />
+
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        onVehicleAdded={onVehicleAdded}
-        onEmployeeAdded={onEmployeeAdded}
+        onVehicleAdded={v => { setData(d => ({ ...d, companyVehicles: [...d.companyVehicles, v] })); setFlash({ type: 'success', message: 'Vehículo añadido.' }); }}
+        onEmployeeAdded={u => { setData(d => ({ ...d, companyUsers: [...d.companyUsers, u] })); setFlash({ type: 'success', message: 'Empleado añadido.' }); }}
         initialTab={drawerTab}
       />
 
@@ -491,10 +531,7 @@ export default function DashboardAdmin({ data: initialData }) {
         open={surveyModalOpen}
         onClose={() => setSurveyModalOpen(false)}
         companyVehicles={companyVehicles}
-        onSurveyCreated={() => {
-          setFlash({ type: 'success', message: 'Encuesta creada y asignada.' });
-          loadSurveys();
-        }}
+        onSurveyCreated={() => { setFlash({ type: 'success', message: 'Encuesta creada.' }); loadSurveys(); setSurveyModalOpen(false); }}
       />
     </Layout>
   );

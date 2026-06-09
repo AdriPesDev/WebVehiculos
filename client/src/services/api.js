@@ -216,6 +216,11 @@ export const api = {
       .then(() => ({ ok: true }))
       .catch((e) => ({ ok: false, error: e.message })),
 
+  updateVehicle: (id, datos) =>
+    put(`/vehiculos/${id}`, datos).catch((e) => {
+      throw new Error(e.message);
+    }),
+
   // Usa el nuevo endpoint de detalle completo
   vehicleDetail: (id) =>
     get(`/vehiculos/${id}/detalle`)
