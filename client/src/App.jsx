@@ -10,25 +10,30 @@ import CompanyCreate from './pages/CompanyCreate';
 import CompanyList from './pages/CompanyList';
 import NotFound from './pages/NotFound';
 
-/** @param {{ children: import('react').ReactNode }} props */
-function PrivateRoute(props) {
-  const { children } = props;
+// Ruta privada: redirige al login si no hay sesión
+function PrivateRoute({ children }) {
   const { user } = useAuth();
   if (user === undefined) return <div className="container"><p>Cargando...</p></div>;
   if (user === null) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
+PrivateRoute.propTypes = { children: PropTypes.node.isRequired };
 
-PrivateRoute.propTypes = {
-  children: PropTypes.node.isRequired,
-};
+// Ruta pública: redirige al dashboard si ya hay sesión activa
+function PublicRoute({ children }) {
+  const { user } = useAuth();
+  if (user === undefined) return <div className="container"><p>Cargando...</p></div>;
+  if (user !== null) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+PublicRoute.propTypes = { children: PropTypes.node.isRequired };
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/"               element={<Home />} />
-      <Route path="/login"          element={<Login />} />
-      <Route path="/register"       element={<Register />} />
+      <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/dashboard"      element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/vehicle/:id"    element={<PrivateRoute><VehicleDetail /></PrivateRoute>} />
       <Route path="/company/create" element={<PrivateRoute><CompanyCreate /></PrivateRoute>} />

@@ -85,6 +85,24 @@ export const api = {
     const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
     if (!usuario) throw new Error("No autenticado");
 
+    // Si el usuario tiene rol de empleado/admin pero sin empresa,
+    // refresca el token para obtener el estado real de la BD
+    if (["admin", "empleado"].includes(usuario.rol) && !usuario.id_empresa) {
+      try {
+        const refreshed = await post("/auth/refresh", {});
+        if (refreshed?.token) {
+          localStorage.setItem("token", refreshed.token);
+          localStorage.setItem("usuario", JSON.stringify(refreshed.usuario));
+          // Si tras el refresh sigue sin empresa, tratar como sin_empresa
+          if (!refreshed.usuario?.id_empresa) {
+            return { role: "sin_empresa" };
+          }
+        }
+      } catch {
+        return { role: "sin_empresa" };
+      }
+    }
+
     const rol = usuario.rol;
 
     if (rol === "admin") {
@@ -110,18 +128,17 @@ export const api = {
     }
 
     if (rol === "superadmin") {
-      const [empresas, usuarios, vehiculos] = await Promise.all([
+      const [empresas, usuarios] = await Promise.all([
         get("/superadmin/empresas"),
         get("/superadmin/usuarios"),
-        // El superadmin no tiene empresa propia, no puede llamar a /vehiculos
-        // Obtenemos todos los vehículos a través de las empresas
-        get("/superadmin/empresas")
-          .then((emps) =>
-            Promise.all(emps.map((e) => get(`/vehiculos`).catch(() => []))),
-          )
-          .then((arrays) => arrays.flat())
-          .catch(() => []),
       ]);
+      // Obtiene vehículos de todas las empresas
+      const vehiculos =
+        empresas.length > 0
+          ? await Promise.all(
+              empresas.map((e) => get(`/vehiculos`).catch(() => [])),
+            ).then((arrays) => arrays.flat())
+          : [];
       return {
         role: "superadmin",
         companies: empresas.map(normalizeEmpresa),
@@ -138,7 +155,6 @@ export const api = {
       ]);
       const empresa = empresas[0] || {};
       const usosNorm = usos.map(normalizeUso);
-      // Uso activo del propio empleado (sin fecha de entrada)
       const myActiveTrip =
         usosNorm.find(
           (u) => u.id_usuario === usuario.id_usuario && !u.checkinTime,
@@ -158,11 +174,7 @@ export const api = {
       };
     }
 
-    if (rol === "sin_empresa") {
-      return { role: "sin_empresa" };
-    }
-
-    return { role: rol };
+    return { role: "sin_empresa" };
   },
 
   // ── Empresas ──────────────────────────────────────────────────────────────────

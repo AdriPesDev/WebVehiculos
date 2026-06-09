@@ -6,26 +6,31 @@ import Alert from '../components/Alert';
 
 export default function CompanyList() {
   const [companies, setCompanies] = useState([]);
-  const [flash, setFlash] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [flash, setFlash]         = useState(null);
+  const [loading, setLoading]     = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     api.companyList()
       .then(res => {
-        if (res.error) setFlash({ type: 'error', message: res.error });
-        else setCompanies(res.companies);
+        if (Array.isArray(res)) {
+          setCompanies(res.map(c => ({
+            id:   c.id_empresa,
+            name: c.nombre,
+          })));
+        }
       })
+      .catch(() => setFlash({ type: 'error', message: 'Error al cargar las empresas.' }))
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleJoin(companyId) {
-    const res = await api.companyJoin(companyId);
-    if (res.ok) {
+  async function handleJoin(id_empresa) {
+    try {
+      await api.companyJoin(id_empresa);
       setFlash({ type: 'success', message: 'Solicitud enviada. Espera la aprobación del administrador.' });
       setTimeout(() => navigate('/dashboard'), 2000);
-    } else {
-      setFlash({ type: 'error', message: res.error });
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message || 'Error al enviar la solicitud.' });
     }
   }
 
@@ -38,36 +43,29 @@ export default function CompanyList() {
         </div>
 
         {flash && <Alert type={flash.type} message={flash.message} onClose={() => setFlash(null)} />}
-
-        {(() => {
-          if (loading) return <p>Cargando empresas...</p>;
-          if (companies.length === 0) return <p>No hay empresas registradas.</p>;
-
-          return (
-            <div className="table-section">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Empresa</th><th>Email</th><th>Acciones</th>
+        {loading && <p>Cargando empresas...</p>}
+        {!loading && companies.length === 0 && <p>No hay empresas registradas todavía.</p>}
+        {!loading && companies.length > 0 && (
+          <div className="table-section">
+            <table>
+              <thead>
+                <tr><th>Empresa</th><th>Acciones</th></tr>
+              </thead>
+              <tbody>
+                {companies.map(c => (
+                  <tr key={c.id}>
+                    <td>{c.name}</td>
+                    <td>
+                      <button className="button button-small button-primary" onClick={() => handleJoin(c.id)}>
+                        Solicitar unirse
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {companies.map(c => (
-                    <tr key={c.id}>
-                      <td>{c.name}</td>
-                      <td>{c.email}</td>
-                      <td>
-                        <button className="button button-small button-primary" onClick={() => handleJoin(c.id)}>
-                          Solicitar unirse
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        })()}
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </Layout>
   );
