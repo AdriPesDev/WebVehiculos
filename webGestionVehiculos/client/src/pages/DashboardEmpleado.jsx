@@ -1,25 +1,38 @@
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import PropTypes from 'prop-types';
 import { api } from '../services/api';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
 import Alert from '../components/Alert';
 
-export default function DashboardEmpleado({ data: initialData }) {
-  const [data, setData] = useState(initialData);
+export default function DashboardEmpleado() {
+  const [data, setData] = useState(null);
   const [flash, setFlash] = useState(null);
 
-  const { company, companyVehicles, userTrips, myActiveTrip, activeVehicle } = data;
+  useLayoutEffect(() => {
+    api.dashboard().then(setData).catch(err => console.error('Error loading dashboard:', err));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+  }, []);
 
-  async function handleCheckin(vehicleId) {
-    const res = await api.checkin(vehicleId, '');
-    if (res.ok) {
-      setFlash({ type: 'success', message: 'Vehículo devuelto.' });
-      const updated = await api.dashboard();
-      setData(updated);
-    } else {
-      setFlash({ type: 'error', message: res.error });
+  if (!data) return <Layout><p className="alert alert-info">Cargando panel...</p></Layout>;
+
+  const company = data?.company || { name: 'Mi Empresa' };
+  const companyVehicles = data?.companyVehicles || [];
+  const activeTrips = data?.activeTrips || [];
+  const userTrips = Array.isArray(activeTrips) ? activeTrips : [];
+
+  async function handleCheckin(usoId) {
+    try {
+      const res = await api.checkin(usoId, '');
+      if (res.ok) {
+        setFlash({ type: 'success', message: 'Vehículo devuelto.' });
+        const updated = await api.dashboard();
+        setData(updated);
+      } else {
+        setFlash({ type: 'error', message: res.error });
+      }
+    } catch (err) {
+      setFlash({ type: 'error', message: err.message });
     }
   }
 
@@ -33,23 +46,18 @@ export default function DashboardEmpleado({ data: initialData }) {
 
         {flash && <Alert type={flash.type} message={flash.message} onClose={() => setFlash(null)} />}
 
-        {myActiveTrip && activeVehicle && (
+        {activeTrips.length > 0 && activeTrips[0] && (
           <div className="trip-active-card">
             <h3>Tu viaje en curso</h3>
-            <p style={{ margin: '0 0 0.5rem' }}>
-              <strong>Vehículo:</strong> {activeVehicle.model} ({activeVehicle.plate}) &nbsp;·&nbsp;
-              <strong>Salida:</strong> {new Date(myActiveTrip.checkoutTime).toLocaleString('es-ES')}
-              {myActiveTrip.destination && (
-                <> &nbsp;·&nbsp; <strong>Destino:</strong> {myActiveTrip.destination}</>
+            <p style={{ margin: '0 0 var(--space-sm)' }}>
+              <strong>Vehículo:</strong> {activeTrips[0].vehicleModel} ({activeTrips[0].vehiclePlate}) &nbsp;·&nbsp;
+              <strong>Salida:</strong> {new Date(activeTrips[0].checkoutTime).toLocaleString('es-ES')}
+              {activeTrips[0].destination && (
+                <> &nbsp;·&nbsp; <strong>Destino:</strong> {activeTrips[0].destination}</>
               )}
             </p>
-            {myActiveTrip.passengers?.length > 0 && (
-              <p style={{ margin: '0 0 0.75rem', color: 'var(--muted)' }}>
-                <strong>Pasajeros:</strong> {myActiveTrip.passengers.map(p => p.name).join(', ')}
-              </p>
-            )}
-            <Link to={`/vehicle/${activeVehicle.id}`} className="button button-small button-outline">
-              Gestionar viaje y pasajeros
+            <Link to={`/vehicle/${activeTrips[0].vehicle_id}`} className="button button-small button-outline">
+              Gestionar viaje
             </Link>
           </div>
         )}
@@ -77,21 +85,25 @@ export default function DashboardEmpleado({ data: initialData }) {
             </thead>
             <tbody>
               {companyVehicles.length === 0 && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>No hay vehículos en la flota todavía.</td></tr>
+                <tr><td colSpan={5} className="empty-state">No hay vehículos en la flota todavía.</td></tr>
               )}
               {companyVehicles.map(v => {
-                const states = v.states || [];
-                const enUso = states.includes('en_uso');
+                const vehicleId = v.id || v.id_vehiculo;
+                const modelo = v.modelo || v.model;
+                const matricula = v.matricula || v.plate;
+                const estado = v.estado || 'desconocido';
+                const ubicacion = v.ubicacion || v.location || '—';
+                const enUso = estado === 'en_uso';
                 return (
-                  <tr key={v.id}>
-                    <td>{v.model}</td>
-                    <td>{v.plate}</td>
-                    <td><Badge states={states} /></td>
-                    <td>{v.location}</td>
+                  <tr key={vehicleId}>
+                    <td>{modelo}</td>
+                    <td>{matricula}</td>
+                    <td><Badge estado={estado} /></td>
+                    <td>{ubicacion}</td>
                     <td className="table-actions">
-                      <Link to={`/vehicle/${v.id}`} className="button button-small button-outline">Detalles</Link>
+                      <Link to={`/vehicle/${vehicleId}`} className="button button-small button-outline">Detalles</Link>
                       {enUso && (
-                        <button className="button button-small" onClick={() => handleCheckin(v.id)}>
+                        <button className="button button-small" onClick={() => handleCheckin(vehicleId)}>
                           Registrar entrada
                         </button>
                       )}
@@ -109,25 +121,17 @@ export default function DashboardEmpleado({ data: initialData }) {
             <table>
               <thead>
                 <tr>
-                  <th>Vehículo</th><th>Salida</th><th>Entrada</th><th>Estado</th>
+                  <th>Vehículo</th><th>Salida</th><th>Entrada</th>
                 </tr>
               </thead>
               <tbody>
-                {userTrips.map(t => {
-                  const vehicle = companyVehicles.find(v => v.id === t.vehicle_id);
-                  return (
-                    <tr key={t.id}>
-                      <td>{vehicle?.model || t.vehicle_id}</td>
-                      <td>{new Date(t.checkoutTime).toLocaleString('es-ES')}</td>
-                      <td>{t.checkinTime ? new Date(t.checkinTime).toLocaleString('es-ES') : '—'}</td>
-                      <td>
-                        <span className={`badge ${t.status === 'active' ? 'badge-warning' : 'badge-success'}`}>
-                          {t.status === 'active' ? 'En curso' : 'Completado'}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {userTrips.map(t => (
+                  <tr key={t.id}>
+                    <td>{t.vehicleModel}</td>
+                    <td>{t.checkoutTime ? new Date(t.checkoutTime).toLocaleString('es-ES') : '—'}</td>
+                    <td>{t.checkinTime ? new Date(t.checkinTime).toLocaleString('es-ES') : '—'}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -136,7 +140,3 @@ export default function DashboardEmpleado({ data: initialData }) {
     </Layout>
   );
 }
-
-DashboardEmpleado.propTypes = {
-  data: PropTypes.object.isRequired,
-};

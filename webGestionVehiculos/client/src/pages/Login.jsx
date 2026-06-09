@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { login } from '../services/auth';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
 import Layout from '../components/Layout';
 import Alert from '../components/Alert';
 
@@ -29,20 +29,31 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { setUser } = useAuth();
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const res = await api.login(email, password);
-    setLoading(false);
-    if (res.ok) {
-      setUser(res.user);
+    try {
+      const usuario = await login(email, password);
+      console.log('Usuario después de login:', usuario);
+      if (!usuario || typeof usuario !== 'object') {
+        setError('Error: No se pudo obtener los datos del usuario.');
+        return;
+      }
+      if (!usuario.rol) {
+        setError('Error: Datos del usuario incompletos (rol no encontrado).');
+        return;
+      }
+      setUser(usuario);
       navigate('/dashboard');
-    } else {
-      setError(res.error || 'Error al iniciar sesión.');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err.message || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
     }
   }
 

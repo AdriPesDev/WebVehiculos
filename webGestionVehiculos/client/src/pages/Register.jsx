@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { api } from '../services/api';
+import { register } from '../services/auth';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import Alert from '../components/Alert';
 
@@ -32,6 +33,7 @@ export default function Register() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
 
@@ -43,12 +45,24 @@ export default function Register() {
     }
     setError(null);
     setLoading(true);
-    const res = await api.register(fullName, email, password);
-    setLoading(false);
-    if (res.ok) {
-      navigate('/login');
-    } else {
-      setError(res.error || 'Error al registrarse.');
+    try {
+      console.log('Register.jsx - Starting registration for:', email);
+      const usuario = await register(fullName, email, password);
+      console.log('Register.jsx - Usuario received:', usuario);
+      if (!usuario) {
+        throw new Error('No se recibió información del usuario');
+      }
+      // Guardar contraseña en sessionStorage para usarla en login automático después de crear empresa
+      sessionStorage.setItem('temp_password', password);
+      sessionStorage.setItem('temp_email', email);
+      setUser(usuario);
+      console.log('Register.jsx - User set in context, navigating to dashboard');
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Register.jsx - Error:', err);
+      setError(err.message || 'Error al registrarse');
+    } finally {
+      setLoading(false);
     }
   }
 

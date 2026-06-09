@@ -4,6 +4,7 @@ import { api } from '../services/api';
 
 export default function SurveyBuilderModal({ open, onClose, companyVehicles, onSurveyCreated, isSuperadmin = false, companies = [] }) {
   const [step, setStep] = useState(1);
+  const [surveyType, setSurveyType] = useState(''); // '' | 'vehicle' | 'global'
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [questions, setQuestions] = useState([]);
@@ -13,6 +14,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
 
   function resetForm() {
     setStep(1);
+    setSurveyType('');
     setSelectedCompanyId('');
     setSelectedVehicleId('');
     setQuestions([]);
@@ -84,7 +86,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
   async function handleSave() {
     setError(null);
 
-    if (!selectedVehicleId) {
+    if (surveyType === 'vehicle' && !selectedVehicleId) {
       setError('Selecciona un vehículo.');
       return;
     }
@@ -113,9 +115,16 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
     }));
 
     setLoading(true);
+
+    // Si es global, asignar a todos los vehículos
+    const vehicleIds = surveyType === 'global'
+      ? companyVehicles.map(v => v.id || v.id_vehiculo)
+      : [selectedVehicleId];
+
     const res = await api.createSurvey({
-      vehicleId: selectedVehicleId,
+      vehicleId: vehicleIds[0], // Para crear la pregunta
       questions: cleanedQuestions,
+      vehicleIds: vehicleIds.length > 1 ? vehicleIds : undefined, // Si hay múltiples, asignar a todos
     });
     setLoading(false);
 
@@ -130,11 +139,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
 
   if (!open) return null;
 
-  const selectedVehicle = companyVehicles.find((v) => v.id === selectedVehicleId);
-  const getTypeName = (type) => {
-    const types = { text: 'Texto libre', number: 'Número', km: 'Kilómetros', radio: 'Opciones' };
-    return types[type] || type;
-  };
+  const selectedVehicle = companyVehicles.find((v) => (v.id || v.id_vehiculo) === selectedVehicleId);
 
   return (
     <>
@@ -165,21 +170,45 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ padding: 'var(--space-lg)', borderBottom: '1px solid var(--border)' }}>
           <h3 id="survey-modal-title" style={{ margin: 0 }}>
-            {step === 1 ? 'Crear nueva encuesta' : `Crear preguntas: ${selectedVehicle?.model || ''}`}
+            {step === 1
+              ? 'Crear nueva encuesta'
+              : surveyType === 'global'
+                ? 'Crear preguntas globales'
+                : `Crear preguntas: ${selectedVehicle?.modelo || selectedVehicle?.model || ''}`}
           </h3>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-lg)' }}>
           {error && (
-            <div style={{ padding: '0.75rem', background: '#fee', border: '1px solid #fcc', borderRadius: '0.25rem', marginBottom: '1rem', color: '#c33', fontSize: '0.9rem' }}>
+            <div style={{ padding: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--danger)', borderRadius: 'var(--radius-md)', marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.9rem' }}>
               {error}
             </div>
           )}
 
           {step === 1 ? (
             <>
+              <div style={{ marginBottom: 'var(--space-lg)' }}>
+                <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.95rem' }}>Tipo de encuesta</label>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSurveyType('vehicle')}
+                    className={`button ${surveyType === 'vehicle' ? 'button-primary' : 'button-outline'}`}
+                  >
+                    Por vehículo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSurveyType('global')}
+                    className={`button ${surveyType === 'global' ? 'button-primary' : 'button-outline'}`}
+                  >
+                    Global (todos los vehículos)
+                  </button>
+                </div>
+              </div>
+
               {isSuperadmin && (
                 <div className="field">
                   <label htmlFor="company-select">Selecciona una empresa</label>
@@ -201,25 +230,28 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                   </select>
                 </div>
               )}
-              <div className="field">
-                <label htmlFor="vehicle-select">Selecciona un vehículo</label>
-                <select
-                  id="vehicle-select"
-                  value={selectedVehicleId}
-                  onChange={(e) => setSelectedVehicleId(e.target.value)}
-                  style={{
-                    borderColor: selectedVehicleId ? 'var(--accent)' : 'var(--border)',
-                    transition: 'border-color 0.2s',
-                  }}
-                >
-                  <option value="">-- Elige un vehículo --</option>
-                  {vehiclesForStep.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.model} ({v.plate})
-                    </option>
-                  ))}
-                </select>
-              </div>
+
+              {surveyType === 'vehicle' && (
+                <div className="field">
+                  <label htmlFor="vehicle-select">Selecciona un vehículo</label>
+                  <select
+                    id="vehicle-select"
+                    value={selectedVehicleId}
+                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                    style={{
+                      borderColor: selectedVehicleId ? 'var(--accent)' : 'var(--border)',
+                      transition: 'border-color 0.2s',
+                    }}
+                  >
+                    <option value="">-- Elige un vehículo --</option>
+                    {vehiclesForStep.map((v) => (
+                      <option key={v.id || v.id_vehiculo} value={v.id || v.id_vehiculo}>
+                        {(v.modelo || v.model)} ({v.matricula || v.plate})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </>
           ) : (
             <div>
@@ -278,6 +310,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                             <option value="text">Texto</option>
                             <option value="number">Número</option>
                             <option value="km">Km</option>
+                            <option value="boolean">Sí/No</option>
                             <option value="radio">Opciones</option>
                           </select>
                         </td>
@@ -308,12 +341,19 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                             <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>—</span>
                           )}
                         </td>
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ textAlign: 'center', display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
+                          <span
+                            title="La pregunta es editable directamente en la tabla"
+                            style={{ fontSize: '1rem', cursor: 'help', opacity: 0.6 }}
+                          >
+                            ✎
+                          </span>
                           <button
                             type="button"
                             onClick={() => deleteQuestion(q.tempId)}
                             className="modal-button modal-button-danger"
                             style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem' }}
+                            title="Eliminar pregunta"
                           >
                             ✕
                           </button>
@@ -397,7 +437,12 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
               type="button"
               onClick={() => setStep(2)}
               className="modal-button modal-button-primary"
-              disabled={(isSuperadmin && !selectedCompanyId) || !selectedVehicleId || loading}
+              disabled={
+                !surveyType ||
+                (isSuperadmin && !selectedCompanyId) ||
+                (surveyType === 'vehicle' && !selectedVehicleId) ||
+                loading
+              }
             >
               Siguiente
             </button>
