@@ -17,6 +17,10 @@ async function request(path, opts = {}) {
   const data = await response.json();
 
   if (response.status === 401) {
+    // En /auth/me el 401 es normal (no hay sesión), no redirigir
+    if (path === "/auth/me") {
+      return null;
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
     window.location.href = "/login";
@@ -64,7 +68,7 @@ export const api = {
   // Nuestra API devuelve el objeto directamente, así que lo envolvemos
   me: () =>
     get("/auth/me")
-      .then((u) => ({ user: normalizeUsuario(u) }))
+      .then((u) => (u ? { user: normalizeUsuario(u) } : { user: null }))
       .catch(() => ({ user: null })),
 
   refresh: () =>
