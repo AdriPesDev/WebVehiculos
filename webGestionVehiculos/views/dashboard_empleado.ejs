@@ -1,0 +1,141 @@
+<%- include('partials/header', { title: 'Panel de empleado | Nethive' }) %>
+
+<section class="dashboard">
+  <% const normalizeStates = (vehicle) => vehicle.states || (vehicle.status ? [vehicle.status] : ['disponible']); %>
+  <div class="dashboard-header">
+    <h2>Bienvenido, <%= user.name %></h2>
+    <p>Empresa: <strong><%= company.name %></strong></p>
+  </div>
+
+  <div class="admin-cards">
+    <div class="admin-card admin-card-employees">
+      <h3>✅ Disponibles</h3>
+      <span class="stat-number"><%= companyVehicles.filter((v) => normalizeStates(v).includes('disponible') || normalizeStates(v).includes('available')).length %></span>
+      <p>vehículos libres</p>
+    </div>
+    <div class="admin-card admin-card-requests">
+      <h3>🚗 En reparto</h3>
+      <span class="stat-number"><%= companyVehicles.filter((v) => normalizeStates(v).includes('en_uso') || normalizeStates(v).includes('busy') || normalizeStates(v).includes('ocupado')).length %></span>
+      <p>en circulación</p>
+    </div>
+    <div class="admin-card admin-card-vehicles">
+      <h3>📋 Mis viajes</h3>
+      <span class="stat-number"><%= userTrips.length %></span>
+      <p>en historial</p>
+    </div>
+  </div>
+
+  <div class="table-section">
+    <h3>Vehículos disponibles para usar</h3>
+    <% const availableVehicles = companyVehicles.filter((v) => normalizeStates(v).includes('disponible') || normalizeStates(v).includes('available')); %>
+    <% if (availableVehicles.length === 0) { %>
+      <p>No hay vehículos disponibles en este momento.</p>
+    <% } else { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Modelo</th>
+            <th>Matricula</th>
+            <th>Capacidad</th>
+            <th>Ubicación</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% availableVehicles.forEach((vehicle) => { %>
+          <tr>
+            <td><%= vehicle.model %></td>
+            <td><%= vehicle.plate %></td>
+            <td><%= vehicle.capacity %></td>
+            <td><%= vehicle.location %></td>
+            <td>
+              <a href="/vehicle/<%= vehicle.id %>" class="button button-small button-outline">Detalle</a>
+              <form action="/vehicle/checkout" method="post" style="display: inline;">
+                <input type="hidden" name="vehicleId" value="<%= vehicle.id %>" />
+                <button type="submit" class="button button-small button-primary">Registrar salida</button>
+              </form>
+            </td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </div>
+
+  <% const activeVehicles = companyVehicles.filter((v) => normalizeStates(v).includes('en_uso') || normalizeStates(v).includes('busy') || normalizeStates(v).includes('ocupado')); %>
+  <% if (activeVehicles.length > 0) { %>
+  <div class="table-section">
+    <h3>Vehículos en reparto (activos)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Modelo</th>
+          <th>Matricula</th>
+          <th>Salida</th>
+          <th>Pasajeros</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% 
+          const fs = require('fs');
+          const path = require('path');
+          const trips = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/trips.json'), 'utf8'));
+          const activeTrips = trips.filter((t) => t.vehicle_id && t.status === 'active');
+          activeVehicles.forEach((vehicle) => {
+            const trip = activeTrips.find((t) => t.vehicle_id === vehicle.id);
+        %>
+        <tr>
+          <td><%= vehicle.model %></td>
+          <td><%= vehicle.plate %></td>
+          <td><%= trip ? new Date(trip.checkoutTime).toLocaleTimeString('es-ES') : 'N/A' %></td>
+          <td><%= trip?.passengers?.length || 0 %></td>
+          <td>
+            <form action="/vehicle/checkin" method="post" style="display: inline;">
+              <input type="hidden" name="vehicleId" value="<%= vehicle.id %>" />
+              <input type="hidden" name="returnDriver" value="" />
+              <button type="submit" class="button button-success">Registrar entrada</button>
+            </form>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+
+  <% if (userTrips.length > 0) { %>
+  <div class="table-section">
+    <h3>Mis viajes completados</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Vehículo</th>
+          <th>Salida</th>
+          <th>Entrada</th>
+          <th>Pasajeros</th>
+          <th>Duración</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% userTrips.slice(-10).reverse().forEach((trip) => {
+          const vehicle = companyVehicles.find((v) => v.id === trip.vehicle_id);
+          const start = new Date(trip.checkoutTime);
+          const end = trip.checkinTime ? new Date(trip.checkinTime) : null;
+          const duration = end ? Math.round((end - start) / 60000) : 0;
+        %>
+        <tr>
+          <td><%= vehicle?.model || 'N/A' %></td>
+          <td><%= start.toLocaleTimeString('es-ES') %></td>
+          <td><%= end ? end.toLocaleTimeString('es-ES') : 'Activo' %></td>
+          <td><%= trip.passengers?.length || 0 %></td>
+          <td><%= duration %>min</td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>
