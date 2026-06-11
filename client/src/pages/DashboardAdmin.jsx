@@ -231,6 +231,9 @@ export default function DashboardAdmin({ data: initialData }) {
             >
               📋➕ Añadir encuesta
             </button>
+            <Link to="/kiosko" className="button button-outline">
+              📟 Modo kiosco
+            </Link>
           </div>
         </div>
 
