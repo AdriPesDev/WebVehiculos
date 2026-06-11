@@ -1,122 +1,159 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+const BASE_URL =
+  import.meta.env.VITE_API_URL || "http://192.168.69.163:3456/api";
+
+function apiFetch(path) {
+  return fetch(`${BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  }).then((r) => r.json());
+}
+
+function apiPost(path, body) {
+  return fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify(body),
+  }).then((r) => r.json());
+}
+
+function apiPut(path, body) {
+  return fetch(`${BASE_URL}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify(body),
+  }).then((r) => r.json());
+}
 
 // ── Estilos inline para pantalla táctil ──────────────────────────────────────
 const s = {
   root: {
-    minHeight: '100dvh',
-    background: 'var(--bg)',
-    display: 'flex',
-    flexDirection: 'column',
-    fontFamily: 'var(--font, sans-serif)',
-    userSelect: 'none',
+    minHeight: "100dvh",
+    background: "var(--bg)",
+    display: "flex",
+    flexDirection: "column",
+    fontFamily: "var(--font, sans-serif)",
+    userSelect: "none",
   },
   header: {
-    background: 'var(--surface)',
-    borderBottom: '1px solid var(--border)',
-    padding: '1rem 1.5rem',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    background: "var(--surface)",
+    borderBottom: "1px solid var(--border)",
+    padding: "1rem 1.5rem",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   body: {
     flex: 1,
-    padding: '1.5rem',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.5rem',
-    overflowY: 'auto',
+    padding: "1.5rem",
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.5rem",
+    overflowY: "auto",
   },
   grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: '1rem',
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+    gap: "1rem",
   },
   card: (selected, color) => ({
-    background: selected ? (color || 'var(--accent)') : 'var(--surface)',
-    color: selected ? '#fff' : 'inherit',
-    border: `2px solid ${selected ? (color || 'var(--accent)') : 'var(--border)'}`,
-    borderRadius: '0.75rem',
-    padding: '1.25rem',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.35rem',
+    background: selected ? color || "var(--accent)" : "var(--surface)",
+    color: selected ? "#fff" : "inherit",
+    border: `2px solid ${selected ? color || "var(--accent)" : "var(--border)"}`,
+    borderRadius: "0.75rem",
+    padding: "1.25rem",
+    cursor: "pointer",
+    transition: "all 0.15s",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.35rem",
     minHeight: 100,
   }),
-  cardTitle: { fontWeight: 700, fontSize: '1.05rem' },
-  cardSub:   { fontSize: '0.85rem', opacity: 0.75 },
+  cardTitle: { fontWeight: 700, fontSize: "1.05rem" },
+  cardSub: { fontSize: "0.85rem", opacity: 0.75 },
   btn: (color) => ({
-    background: color || 'var(--accent)',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '0.75rem',
-    padding: '1rem 2rem',
-    fontSize: '1.1rem',
+    background: color || "var(--accent)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "0.75rem",
+    padding: "1rem 2rem",
+    fontSize: "1.1rem",
     fontWeight: 600,
-    cursor: 'pointer',
+    cursor: "pointer",
     minHeight: 56,
     minWidth: 160,
   }),
   btnOutline: {
-    background: 'transparent',
-    border: '2px solid var(--border)',
-    borderRadius: '0.75rem',
-    padding: '1rem 2rem',
-    fontSize: '1.1rem',
+    background: "transparent",
+    border: "2px solid var(--border)",
+    borderRadius: "0.75rem",
+    padding: "1rem 2rem",
+    fontSize: "1.1rem",
     fontWeight: 600,
-    cursor: 'pointer',
+    cursor: "pointer",
     minHeight: 56,
     minWidth: 160,
   },
   section: {
-    background: 'var(--surface)',
-    borderRadius: '1rem',
-    padding: '1.25rem',
-    border: '1px solid var(--border)',
+    background: "var(--surface)",
+    borderRadius: "1rem",
+    padding: "1.25rem",
+    border: "1px solid var(--border)",
   },
   sectionTitle: {
-    fontSize: '1.1rem',
+    fontSize: "1.1rem",
     fontWeight: 700,
-    marginBottom: '1rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
+    marginBottom: "1rem",
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
   },
   actions: {
-    display: 'flex',
-    gap: '1rem',
-    justifyContent: 'flex-end',
-    flexWrap: 'wrap',
-    marginTop: '1rem',
+    display: "flex",
+    gap: "1rem",
+    justifyContent: "flex-end",
+    flexWrap: "wrap",
+    marginTop: "1rem",
   },
   badge: (color) => ({
-    display: 'inline-block',
+    display: "inline-block",
     background: color,
-    color: '#fff',
-    borderRadius: '999px',
-    padding: '0.2rem 0.6rem',
-    fontSize: '0.75rem',
+    color: "#fff",
+    borderRadius: "999px",
+    padding: "0.2rem 0.6rem",
+    fontSize: "0.75rem",
     fontWeight: 600,
   }),
   flash: (type) => ({
-    background: type === 'success' ? '#d1fae5' : '#fee2e2',
-    color: type === 'success' ? '#065f46' : '#991b1b',
-    borderRadius: '0.75rem',
-    padding: '1rem 1.25rem',
+    background: type === "success" ? "#d1fae5" : "#fee2e2",
+    color: type === "success" ? "#065f46" : "#991b1b",
+    borderRadius: "0.75rem",
+    padding: "1rem 1.25rem",
     fontWeight: 600,
-    fontSize: '1rem',
+    fontSize: "1rem",
   }),
 };
 
-const PASO = { HOME: 'home', SALIDA_VEHICULO: 'salida_vehiculo', SALIDA_CONDUCTOR: 'salida_conductor', SALIDA_PASAJEROS: 'salida_pasajeros', SALIDA_CONFIRMAR: 'salida_confirmar', LLEGADA: 'llegada' };
+const PASO = {
+  HOME: "home",
+  SALIDA_VEHICULO: "salida_vehiculo",
+  SALIDA_CONDUCTOR: "salida_conductor",
+  SALIDA_PASAJEROS: "salida_pasajeros",
+  SALIDA_CONFIRMAR: "salida_confirmar",
+  LLEGADA: "llegada",
+};
 
 export default function Kiosko() {
   const { user } = useAuth();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
 
   const [paso, setPaso]               = useState(PASO.HOME);
   const [estado, setEstado]           = useState(null);
@@ -124,21 +161,20 @@ export default function Kiosko() {
   const [flash, setFlash]             = useState(null);
   const [operando, setOperando]       = useState(false);
 
-  // Selecciones del flujo de salida
   const [vehiculoSel, setVehiculoSel]   = useState(null);
   const [conductorSel, setConductorSel] = useState(null);
   const [pasajerosSel, setPasajerosSel] = useState([]);
 
   const cargar = useCallback(async () => {
     try {
-      const [vehiculos, usos, usuarios] = await Promise.all([
-        api.get ? api.get('/vehiculos/disponibles') : fetch(`${import.meta.env.VITE_API_URL || 'http://192.168.69.163:3456/api'}/vehiculos/disponibles`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(r => r.json()),
-        api.usoActivo(),
-        api.companeros(),
+      const [disponibles, activos, usuarios] = await Promise.all([
+        apiFetch("/vehiculos/disponibles"),
+        apiFetch("/usos/activos"),
+        apiFetch("/usuarios"),
       ]);
-      setEstado({ disponibles: vehiculos, activos: usos, usuarios });
+      setEstado({ disponibles, activos, usuarios });
     } catch {
-      setFlash({ type: 'error', msg: 'Error al cargar datos. Reintentando...' });
+      setFlash({ type: "error", msg: "Error al cargar datos. Reintentando..." });
     } finally {
       setCargando(false);
     }
@@ -167,17 +203,21 @@ export default function Kiosko() {
   async function confirmarSalida() {
     setOperando(true);
     try {
-      const res = await api.checkout(vehiculoSel.id_vehiculo, conductorSel.id, pasajerosSel.map(p => p.id));
-      if (res.ok) {
-        setFlash({ type: 'success', msg: `✅ Salida registrada. ¡Buen viaje, ${conductorSel.nombre}!` });
+      const res = await apiPost("/usos", {
+        id_vehiculo:  vehiculoSel.id_vehiculo,
+        id_conductor: conductorSel.id_usuario,
+        id_pasajeros: pasajerosSel.map((p) => p.id_usuario),
+      });
+      if (res.id_uso || !res.error) {
+        setFlash({ type: "success", msg: `✅ Salida registrada. ¡Buen viaje, ${conductorSel.nombre}!` });
         await cargar();
         resetFlujo();
       } else {
-        setFlash({ type: 'error', msg: res.error || 'Error al registrar la salida.' });
+        setFlash({ type: "error", msg: res.error || "Error al registrar la salida." });
         resetFlujo();
       }
     } catch {
-      setFlash({ type: 'error', msg: 'Error de conexión.' });
+      setFlash({ type: "error", msg: "Error de conexión." });
       resetFlujo();
     } finally {
       setOperando(false);
@@ -187,39 +227,39 @@ export default function Kiosko() {
   async function confirmarLlegada(id_uso) {
     setOperando(true);
     try {
-      const res = await api.checkin(id_uso);
-      if (res.ok) {
-        setFlash({ type: 'success', msg: '✅ Llegada registrada correctamente.' });
+      const res = await apiPut(`/usos/${id_uso}/entrada`, {});
+      if (!res.error) {
+        setFlash({ type: "success", msg: "✅ Llegada registrada correctamente." });
         await cargar();
         setPaso(PASO.HOME);
       } else {
-        setFlash({ type: 'error', msg: res.error || 'Error al registrar la llegada.' });
+        setFlash({ type: "error", msg: res.error || "Error al registrar la llegada." });
         setPaso(PASO.HOME);
       }
     } catch {
-      setFlash({ type: 'error', msg: 'Error de conexión.' });
+      setFlash({ type: "error", msg: "Error de conexión." });
       setPaso(PASO.HOME);
     } finally {
       setOperando(false);
     }
   }
 
-  function togglePasajero(usuario) {
-    setPasajerosSel(prev =>
-      prev.some(p => p.id === usuario.id)
-        ? prev.filter(p => p.id !== usuario.id)
-        : [...prev, usuario]
+  function togglePasajero(u) {
+    setPasajerosSel((prev) =>
+      prev.some((p) => p.id_usuario === u.id_usuario)
+        ? prev.filter((p) => p.id_usuario !== u.id_usuario)
+        : [...prev, u]
     );
   }
 
-  if (!user || (user.rol !== 'admin' && user.role !== 'admin')) {
+  if (!user || (user.rol !== "admin" && user.role !== "admin")) {
     return (
-      <div style={{ ...s.root, justifyContent: 'center', alignItems: 'center' }}>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+      <div style={{ ...s.root, justifyContent: "center", alignItems: "center" }}>
+        <div style={{ textAlign: "center", padding: "2rem" }}>
+          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔒</div>
           <h2>Acceso restringido</h2>
-          <p style={{ color: 'var(--muted)' }}>Esta pantalla solo está disponible para administradores.</p>
-          <button style={s.btn()} onClick={() => navigate('/dashboard')}>Volver al panel</button>
+          <p style={{ color: "var(--muted)" }}>Esta pantalla solo está disponible para administradores.</p>
+          <button style={s.btn()} onClick={() => navigate("/dashboard")}>Volver al panel</button>
         </div>
       </div>
     );
@@ -227,8 +267,8 @@ export default function Kiosko() {
 
   if (cargando) {
     return (
-      <div style={{ ...s.root, justifyContent: 'center', alignItems: 'center' }}>
-        <p style={{ fontSize: '1.2rem', color: 'var(--muted)' }}>Cargando...</p>
+      <div style={{ ...s.root, justifyContent: "center", alignItems: "center" }}>
+        <p style={{ fontSize: "1.2rem", color: "var(--muted)" }}>Cargando...</p>
       </div>
     );
   }
@@ -239,24 +279,27 @@ export default function Kiosko() {
     <div style={s.root}>
       {/* Header */}
       <div style={s.header}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           {paso !== PASO.HOME && (
             <button style={s.btnOutline} onClick={resetFlujo}>← Cancelar</button>
           )}
-          <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>
-            {paso === PASO.HOME            && '🚗 Gestión de vehículos'}
-            {paso === PASO.SALIDA_VEHICULO  && 'Paso 1 · Selecciona vehículo'}
-            {paso === PASO.SALIDA_CONDUCTOR && 'Paso 2 · Selecciona conductor'}
-            {paso === PASO.SALIDA_PASAJEROS && 'Paso 3 · Añadir pasajeros'}
-            {paso === PASO.SALIDA_CONFIRMAR && 'Paso 4 · Confirmar salida'}
-            {paso === PASO.LLEGADA          && 'Registrar llegada'}
+          <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700 }}>
+            {paso === PASO.HOME             && "🚗 Gestión de vehículos"}
+            {paso === PASO.SALIDA_VEHICULO  && "Paso 1 · Selecciona vehículo"}
+            {paso === PASO.SALIDA_CONDUCTOR && "Paso 2 · Selecciona conductor"}
+            {paso === PASO.SALIDA_PASAJEROS && "Paso 3 · Añadir pasajeros"}
+            {paso === PASO.SALIDA_CONFIRMAR && "Paso 4 · Confirmar salida"}
+            {paso === PASO.LLEGADA          && "Registrar llegada"}
           </h1>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
             {disponibles.length} disponibles · {activos.length} en uso
           </span>
-          <button style={{ ...s.btnOutline, minWidth: 'auto', padding: '0.5rem 1rem', fontSize: '0.9rem' }} onClick={() => navigate('/dashboard')}>
+          <button
+            style={{ ...s.btnOutline, minWidth: "auto", padding: "0.5rem 1rem", fontSize: "0.9rem" }}
+            onClick={() => navigate("/dashboard")}
+          >
             Panel admin
           </button>
         </div>
@@ -264,7 +307,7 @@ export default function Kiosko() {
 
       {/* Flash */}
       {flash && (
-        <div style={{ padding: '0 1.5rem', paddingTop: '1rem' }}>
+        <div style={{ padding: "0 1.5rem", paddingTop: "1rem" }}>
           <div style={s.flash(flash.type)}>{flash.msg}</div>
         </div>
       )}
@@ -274,17 +317,16 @@ export default function Kiosko() {
         {/* ── HOME ── */}
         {paso === PASO.HOME && (
           <>
-            {/* Acciones principales */}
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <button
-                style={{ ...s.btn('#0ea5e9'), flex: 1, minWidth: 200, fontSize: '1.2rem', minHeight: 80 }}
+                style={{ ...s.btn("#0ea5e9"), flex: 1, minWidth: 200, fontSize: "1.2rem", minHeight: 80 }}
                 onClick={() => setPaso(PASO.SALIDA_VEHICULO)}
                 disabled={disponibles.length === 0}
               >
                 🚗 Registrar salida
               </button>
               <button
-                style={{ ...s.btn('#10b981'), flex: 1, minWidth: 200, fontSize: '1.2rem', minHeight: 80 }}
+                style={{ ...s.btn("#10b981"), flex: 1, minWidth: 200, fontSize: "1.2rem", minHeight: 80 }}
                 onClick={() => setPaso(PASO.LLEGADA)}
                 disabled={activos.length === 0}
               >
@@ -292,21 +334,20 @@ export default function Kiosko() {
               </button>
             </div>
 
-            {/* Vehículos disponibles */}
             <div style={s.section}>
               <div style={s.sectionTitle}>
-                <span style={s.badge('#0ea5e9')}>✓</span>
+                <span style={s.badge("#0ea5e9")}>✓</span>
                 Vehículos disponibles ({disponibles.length})
               </div>
               {disponibles.length === 0 ? (
-                <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '1rem' }}>No hay vehículos disponibles ahora mismo.</p>
+                <p style={{ color: "var(--muted)", textAlign: "center", padding: "1rem" }}>No hay vehículos disponibles ahora mismo.</p>
               ) : (
                 <div style={s.grid}>
-                  {disponibles.map(v => (
-                    <div key={v.id_vehiculo} style={{ ...s.card(false), cursor: 'default', borderColor: '#0ea5e9' }}>
-                      <span style={s.cardTitle}>{[v.marca, v.modelo].filter(Boolean).join(' ') || v.matricula}</span>
+                  {disponibles.map((v) => (
+                    <div key={v.id_vehiculo} style={{ ...s.card(false), cursor: "default", borderColor: "#0ea5e9" }}>
+                      <span style={s.cardTitle}>{[v.marca, v.modelo].filter(Boolean).join(" ") || v.matricula}</span>
                       <span style={s.cardSub}>{v.matricula}</span>
-                      {v.tipo && <span style={s.cardSub}>{v.tipo}</span>}
+                      {v.tipo     && <span style={s.cardSub}>{v.tipo}</span>}
                       {v.capacidad && <span style={s.cardSub}>{v.capacidad} plazas</span>}
                     </div>
                   ))}
@@ -314,26 +355,25 @@ export default function Kiosko() {
               )}
             </div>
 
-            {/* Viajes en curso */}
             <div style={s.section}>
               <div style={s.sectionTitle}>
-                <span style={s.badge('#f59e0b')}>⏳</span>
+                <span style={s.badge("#f59e0b")}>⏳</span>
                 Viajes en curso ({activos.length})
               </div>
               {activos.length === 0 ? (
-                <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '1rem' }}>No hay viajes activos.</p>
+                <p style={{ color: "var(--muted)", textAlign: "center", padding: "1rem" }}>No hay viajes activos.</p>
               ) : (
                 <div style={s.grid}>
-                  {activos.map(u => (
-                    <div key={u.id_uso} style={{ ...s.card(false), cursor: 'default', borderColor: '#f59e0b' }}>
-                      <span style={s.cardTitle}>{[u.marca, u.modelo].filter(Boolean).join(' ') || u.matricula}</span>
+                  {activos.map((u) => (
+                    <div key={u.id_uso} style={{ ...s.card(false), cursor: "default", borderColor: "#f59e0b" }}>
+                      <span style={s.cardTitle}>{[u.marca, u.modelo].filter(Boolean).join(" ") || u.matricula}</span>
                       <span style={s.cardSub}>{u.matricula}</span>
                       <span style={s.cardSub}>🧑‍✈️ {u.nombre_conductor}</span>
                       <span style={s.cardSub}>
-                        🕐 {new Date(u.fecha_salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        🕐 {new Date(u.fecha_salida).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       {u.pasajeros?.length > 0 && (
-                        <span style={s.cardSub}>👥 {u.pasajeros.map(p => p.nombre).join(', ')}</span>
+                        <span style={s.cardSub}>👥 {u.pasajeros.map((p) => p.nombre).join(", ")}</span>
                       )}
                     </div>
                   ))}
@@ -343,28 +383,24 @@ export default function Kiosko() {
           </>
         )}
 
-        {/* ── PASO 1: Seleccionar vehículo ── */}
+        {/* ── PASO 1: Vehículo ── */}
         {paso === PASO.SALIDA_VEHICULO && (
           <div style={s.section}>
             <div style={s.sectionTitle}>Selecciona el vehículo</div>
-            {disponibles.length === 0 ? (
-              <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '2rem' }}>No hay vehículos disponibles.</p>
-            ) : (
-              <div style={s.grid}>
-                {disponibles.map(v => (
-                  <div
-                    key={v.id_vehiculo}
-                    style={s.card(vehiculoSel?.id_vehiculo === v.id_vehiculo, '#0ea5e9')}
-                    onClick={() => setVehiculoSel(v)}
-                  >
-                    <span style={s.cardTitle}>{[v.marca, v.modelo].filter(Boolean).join(' ') || v.matricula}</span>
-                    <span style={s.cardSub}>{v.matricula}</span>
-                    {v.tipo && <span style={s.cardSub}>{v.tipo}</span>}
-                    {v.capacidad && <span style={s.cardSub}>{v.capacidad} plazas</span>}
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={s.grid}>
+              {disponibles.map((v) => (
+                <div
+                  key={v.id_vehiculo}
+                  style={s.card(vehiculoSel?.id_vehiculo === v.id_vehiculo, "#0ea5e9")}
+                  onClick={() => setVehiculoSel(v)}
+                >
+                  <span style={s.cardTitle}>{[v.marca, v.modelo].filter(Boolean).join(" ") || v.matricula}</span>
+                  <span style={s.cardSub}>{v.matricula}</span>
+                  {v.tipo      && <span style={s.cardSub}>{v.tipo}</span>}
+                  {v.capacidad && <span style={s.cardSub}>{v.capacidad} plazas</span>}
+                </div>
+              ))}
+            </div>
             <div style={s.actions}>
               <button style={s.btn()} disabled={!vehiculoSel} onClick={() => setPaso(PASO.SALIDA_CONDUCTOR)}>
                 Siguiente →
@@ -373,22 +409,22 @@ export default function Kiosko() {
           </div>
         )}
 
-        {/* ── PASO 2: Seleccionar conductor ── */}
+        {/* ── PASO 2: Conductor ── */}
         {paso === PASO.SALIDA_CONDUCTOR && (
           <div style={s.section}>
             <div style={s.sectionTitle}>
               Selecciona el conductor
-              <span style={{ ...s.badge('#0ea5e9'), marginLeft: 'auto' }}>{vehiculoSel?.matricula}</span>
+              <span style={{ ...s.badge("#0ea5e9"), marginLeft: "auto" }}>{vehiculoSel?.matricula}</span>
             </div>
             <div style={s.grid}>
-              {usuarios.map(u => (
+              {usuarios.map((u) => (
                 <div
-                  key={u.id}
-                  style={s.card(conductorSel?.id === u.id)}
+                  key={u.id_usuario}
+                  style={s.card(conductorSel?.id_usuario === u.id_usuario)}
                   onClick={() => setConductorSel(u)}
                 >
-                  <span style={s.cardTitle}>{u.name || u.nombre}</span>
-                  <span style={s.cardSub}>{u.role === 'admin' ? 'Administrador' : 'Empleado'}</span>
+                  <span style={s.cardTitle}>{u.nombre}</span>
+                  <span style={s.cardSub}>{u.rol === "admin" ? "Administrador" : "Empleado"}</span>
                 </div>
               ))}
             </div>
@@ -401,90 +437,96 @@ export default function Kiosko() {
           </div>
         )}
 
-        {/* ── PASO 3: Seleccionar pasajeros ── */}
+        {/* ── PASO 3: Pasajeros ── */}
         {paso === PASO.SALIDA_PASAJEROS && (
           <div style={s.section}>
             <div style={s.sectionTitle}>
               Añadir pasajeros (opcional)
-              <span style={{ ...s.badge('#0ea5e9'), marginLeft: 'auto' }}>{vehiculoSel?.matricula} · {conductorSel?.name || conductorSel?.nombre}</span>
+              <span style={{ ...s.badge("#0ea5e9"), marginLeft: "auto" }}>
+                {vehiculoSel?.matricula} · {conductorSel?.nombre}
+              </span>
             </div>
-            <p style={{ color: 'var(--muted)', marginTop: 0 }}>Pulsa los nombres de los pasajeros. Pulsa de nuevo para deseleccionar.</p>
+            <p style={{ color: "var(--muted)", marginTop: 0 }}>Pulsa los nombres para seleccionar. Pulsa de nuevo para deseleccionar.</p>
             <div style={s.grid}>
               {usuarios
-                .filter(u => u.id !== conductorSel?.id)
-                .map(u => (
+                .filter((u) => u.id_usuario !== conductorSel?.id_usuario)
+                .map((u) => (
                   <div
-                    key={u.id}
-                    style={s.card(pasajerosSel.some(p => p.id === u.id), '#8b5cf6')}
+                    key={u.id_usuario}
+                    style={s.card(pasajerosSel.some((p) => p.id_usuario === u.id_usuario), "#8b5cf6")}
                     onClick={() => togglePasajero(u)}
                   >
-                    <span style={s.cardTitle}>{u.name || u.nombre}</span>
-                    <span style={s.cardSub}>{pasajerosSel.some(p => p.id === u.id) ? '✓ Seleccionado' : 'Pulsar para añadir'}</span>
+                    <span style={s.cardTitle}>{u.nombre}</span>
+                    <span style={s.cardSub}>
+                      {pasajerosSel.some((p) => p.id_usuario === u.id_usuario) ? "✓ Seleccionado" : "Pulsar para añadir"}
+                    </span>
                   </div>
                 ))}
             </div>
             {pasajerosSel.length > 0 && (
-              <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>
-                Pasajeros seleccionados: {pasajerosSel.map(p => p.name || p.nombre).join(', ')}
+              <p style={{ marginTop: "0.75rem", fontWeight: 600 }}>
+                Pasajeros: {pasajerosSel.map((p) => p.nombre).join(", ")}
               </p>
             )}
             <div style={s.actions}>
               <button style={s.btnOutline} onClick={() => setPaso(PASO.SALIDA_CONDUCTOR)}>← Atrás</button>
               <button style={s.btn()} onClick={() => setPaso(PASO.SALIDA_CONFIRMAR)}>
-                {pasajerosSel.length > 0 ? `Continuar (${pasajerosSel.length} pasajero${pasajerosSel.length > 1 ? 's' : ''})` : 'Continuar sin pasajeros'}
+                {pasajerosSel.length > 0
+                  ? `Continuar (${pasajerosSel.length} pasajero${pasajerosSel.length > 1 ? "s" : ""})`
+                  : "Continuar sin pasajeros"}
               </button>
             </div>
           </div>
         )}
 
-        {/* ── PASO 4: Confirmar salida ── */}
+        {/* ── PASO 4: Confirmar ── */}
         {paso === PASO.SALIDA_CONFIRMAR && (
           <div style={s.section}>
             <div style={s.sectionTitle}>Confirmar salida</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '1.1rem', marginBottom: '1.5rem' }}>
-              <div>🚗 <strong>Vehículo:</strong> {[vehiculoSel?.marca, vehiculoSel?.modelo].filter(Boolean).join(' ') || vehiculoSel?.matricula} ({vehiculoSel?.matricula})</div>
-              <div>🧑‍✈️ <strong>Conductor:</strong> {conductorSel?.name || conductorSel?.nombre}</div>
-              <div>👥 <strong>Pasajeros:</strong> {pasajerosSel.length > 0 ? pasajerosSel.map(p => p.name || p.nombre).join(', ') : 'Ninguno'}</div>
-              <div>🕐 <strong>Hora de salida:</strong> {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", fontSize: "1.1rem", marginBottom: "1.5rem" }}>
+              <div>🚗 <strong>Vehículo:</strong> {[vehiculoSel?.marca, vehiculoSel?.modelo].filter(Boolean).join(" ") || vehiculoSel?.matricula} ({vehiculoSel?.matricula})</div>
+              <div>🧑‍✈️ <strong>Conductor:</strong> {conductorSel?.nombre}</div>
+              <div>👥 <strong>Pasajeros:</strong> {pasajerosSel.length > 0 ? pasajerosSel.map((p) => p.nombre).join(", ") : "Ninguno"}</div>
+              <div>🕐 <strong>Hora:</strong> {new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}</div>
             </div>
             <div style={s.actions}>
               <button style={s.btnOutline} onClick={() => setPaso(PASO.SALIDA_PASAJEROS)}>← Atrás</button>
               <button
-                style={{ ...s.btn('#10b981'), fontSize: '1.2rem', minHeight: 64, minWidth: 220 }}
+                style={{ ...s.btn("#10b981"), fontSize: "1.2rem", minHeight: 64, minWidth: 220 }}
                 disabled={operando}
                 onClick={confirmarSalida}
               >
-                {operando ? 'Registrando...' : '✅ Confirmar salida'}
+                {operando ? "Registrando..." : "✅ Confirmar salida"}
               </button>
             </div>
           </div>
         )}
 
-        {/* ── LLEGADA: Seleccionar viaje ── */}
+        {/* ── LLEGADA ── */}
         {paso === PASO.LLEGADA && (
           <div style={s.section}>
             <div style={s.sectionTitle}>Selecciona el viaje que ha llegado</div>
             {activos.length === 0 ? (
-              <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '2rem' }}>No hay viajes activos.</p>
+              <p style={{ color: "var(--muted)", textAlign: "center", padding: "2rem" }}>No hay viajes activos.</p>
             ) : (
               <div style={s.grid}>
-                {activos.map(u => (
+                {activos.map((u) => (
                   <div
                     key={u.id_uso}
-                    style={{ ...s.card(false), borderColor: '#10b981', cursor: operando ? 'wait' : 'pointer' }}
+                    style={{ ...s.card(false), borderColor: "#10b981", cursor: operando ? "wait" : "pointer" }}
                     onClick={() => !operando && confirmarLlegada(u.id_uso)}
                   >
-                    <span style={s.cardTitle}>{[u.marca, u.modelo].filter(Boolean).join(' ') || u.matricula}</span>
+                    <span style={s.cardTitle}>{[u.marca, u.modelo].filter(Boolean).join(" ") || u.matricula}</span>
                     <span style={s.cardSub}>{u.matricula}</span>
                     <span style={s.cardSub}>🧑‍✈️ {u.nombre_conductor}</span>
                     <span style={s.cardSub}>
-                      🕐 Salida: {new Date(u.fecha_salida).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      🕐 {new Date(u.fecha_salida).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     {u.pasajeros?.length > 0 && (
-                      <span style={s.cardSub}>👥 {u.pasajeros.map(p => p.nombre).join(', ')}</span>
+                      <span style={s.cardSub}>👥 {u.pasajeros.map((p) => p.nombre).join(", ")}</span>
                     )}
-                    <div style={{ marginTop: '0.5rem' }}>
-                      <span style={s.badge('#10b981')}>Pulsar para registrar llegada</span>
+                    <div style={{ marginTop: "0.5rem" }}>
+                      <span style={s.badge("#10b981")}>Pulsar para registrar llegada</span>
                     </div>
                   </div>
                 ))}

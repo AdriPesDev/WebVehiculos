@@ -306,8 +306,8 @@ export const api = {
       })
       .catch((e) => ({ ok: false, error: e.message })),
 
-  checkout: (id_vehiculo) =>
-    post("/usos", { id_vehiculo })
+  checkout: (id_vehiculo, id_conductor, id_pasajeros = []) =>
+    post("/usos", { id_vehiculo, id_conductor, id_pasajeros })
       .then((r) => ({ ok: true, ...r }))
       .catch((e) => ({ ok: false, error: e.message })),
 
