@@ -80,6 +80,24 @@ export default function DashboardAdmin({ data: initialData }) {
     }
   }
 
+  async function handleChangeRol(idUsuario, nuevoRol) {
+    try {
+      await api.updateUsuario(idUsuario, { rol: nuevoRol });
+      setData((d) => ({
+        ...d,
+        companyUsers: d.companyUsers.map((u) =>
+          u.id === idUsuario ? { ...u, role: nuevoRol, rol: nuevoRol } : u,
+        ),
+      }));
+      setFlash({ type: "success", message: "Rol actualizado." });
+    } catch (err) {
+      setFlash({
+        type: "error",
+        message: err.message || "Error al cambiar el rol.",
+      });
+    }
+  }
+
   async function confirmApprove(role) {
     const { requestId, userName } = approveModal;
     setApproveModal(null);
@@ -444,7 +462,19 @@ export default function DashboardAdmin({ data: initialData }) {
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
-                    <span className="badge">{u.role}</span>
+                    {/* ANTES: <span className="badge">{u.role}</span> */}
+                    <select
+                      value={u.role}
+                      onChange={(e) => handleChangeRol(u.id, e.target.value)}
+                      className="badge"
+                      style={{
+                        cursor: "pointer",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <option value="empleado">empleado</option>
+                      <option value="admin">admin</option>
+                    </select>
                   </td>
                   <td>
                     {u.role === "empleado" && (

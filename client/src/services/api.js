@@ -278,6 +278,11 @@ export const api = {
       .then((r) => ({ ok: true, user: normalizeUsuario(r) }))
       .catch((e) => ({ ok: false, error: e.message })),
 
+  updateUsuario: (id, datos) =>
+    put(`/usuarios/${id}`, datos).catch((e) => {
+      throw new Error(e.message);
+    }),
+
   removeEmployee: (id) =>
     del(`/usuarios/${id}`)
       .then(() => ({ ok: true }))
