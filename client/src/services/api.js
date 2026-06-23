@@ -345,7 +345,6 @@ export const api = {
       .catch(() => ({ surveys: [] })),
 
   createSurvey: async ({ vehicleId, questions }) => {
-    // Mapeo de tipos del modal a tipos de la API
     const tipoMap = {
       text: "texto",
       number: "numero",
@@ -361,6 +360,9 @@ export const api = {
           obligatoria: q.required || false,
           opciones: q.type === "radio" ? q.options.filter((o) => o.trim()) : [],
           id_vehiculos: vehicleId ? [parseInt(vehicleId)] : [],
+          id_admins_notificar: (q.adminsNotificar || []).map((id) =>
+            parseInt(id),
+          ),
         });
       }
       return { ok: true };
@@ -390,6 +392,21 @@ export const api = {
         })),
       )
       .catch(() => []),
+
+  updateSurvey: (id, datos) =>
+    put(`/encuestas/preguntas/${id}`, datos)
+      .then((r) => ({ ok: true, ...r }))
+      .catch((e) => ({ ok: false, error: e.message })),
+
+  updateSurveyVehiculos: (id, id_vehiculos) =>
+    post(`/encuestas/preguntas/${id}/vehiculos`, { id_vehiculos })
+      .then((r) => ({ ok: true, ...r }))
+      .catch((e) => ({ ok: false, error: e.message })),
+
+  updateSurveyNotificaciones: (id, id_admins_notificar) =>
+    put(`/encuestas/preguntas/${id}/notificaciones`, { id_admins_notificar })
+      .then((r) => ({ ok: true, ...r }))
+      .catch((e) => ({ ok: false, error: e.message })),
 };
 
 // ── Normalizadores ────────────────────────────────────────────────────────────
@@ -496,8 +513,14 @@ function normalizePregunta(p) {
       id: o.id_opcion,
       text: o.texto,
     })),
+    vehicleIds: (p.vehiculos || []).map((v) => v.id_vehiculo),
     vehicleName:
       (p.vehiculos || []).map((v) => v.matricula).join(", ") || "Global",
     questions: p.opciones || [],
+    adminsNotificar: (p.admins_notificar || []).map((a) => ({
+      id: a.id_usuario,
+      name: a.nombre,
+      email: a.email,
+    })),
   };
 }

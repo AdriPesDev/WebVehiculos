@@ -7,6 +7,7 @@ import Badge from "../components/Badge";
 import Alert from "../components/Alert";
 import Drawer from "../components/Drawer";
 import SurveyBuilderModal from "../components/SurveyBuilderModal";
+import SurveyEditModal from "../components/SurveyEditModal";
 import VehicleEditModal from "../components/VehicleEditModal";
 
 export default function DashboardAdmin({ data: initialData }) {
@@ -18,6 +19,7 @@ export default function DashboardAdmin({ data: initialData }) {
   const [companySurveys, setCompanySurveys] = useState([]);
   const [deleteSurveyModal, setDeleteSurveyModal] = useState(null);
   const [editVehicleModal, setEditVehicleModal] = useState(null);
+  const [editSurveyModal, setEditSurveyModal] = useState(null);
 
   // Historial
   const [historial, setHistorial] = useState([]);
@@ -462,7 +464,6 @@ export default function DashboardAdmin({ data: initialData }) {
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
-                    {/* ANTES: <span className="badge">{u.role}</span> */}
                     <select
                       value={u.role}
                       onChange={(e) => handleChangeRol(u.id, e.target.value)}
@@ -504,6 +505,7 @@ export default function DashboardAdmin({ data: initialData }) {
                 <th>Tipo</th>
                 <th>Vehículos</th>
                 <th>Obligatoria</th>
+                <th>Avisos</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
@@ -512,7 +514,7 @@ export default function DashboardAdmin({ data: initialData }) {
               {companySurveys.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     style={{
                       textAlign: "center",
                       color: "var(--muted)",
@@ -532,13 +534,24 @@ export default function DashboardAdmin({ data: initialData }) {
                   <td>{s.vehicleName}</td>
                   <td>{s.required ? "✓" : "—"}</td>
                   <td>
+                    {s.adminsNotificar?.length > 0
+                      ? `${s.adminsNotificar.length} admin${s.adminsNotificar.length > 1 ? "s" : ""}`
+                      : <span style={{ color: "var(--muted)" }}>—</span>}
+                  </td>
+                  <td>
                     <span
                       className={`badge ${s.active ? "badge-success" : "badge-warning"}`}
                     >
                       {s.active ? "Activa" : "Inactiva"}
                     </span>
                   </td>
-                  <td>
+                  <td className="table-actions">
+                    <button
+                      className="button button-small button-outline"
+                      onClick={() => setEditSurveyModal(s)}
+                    >
+                      ✏️ Editar
+                    </button>
                     <button
                       className="button button-small button-danger"
                       onClick={() =>
@@ -999,6 +1012,18 @@ export default function DashboardAdmin({ data: initialData }) {
         onUpdated={handleVehicleUpdated}
       />
 
+      <SurveyEditModal
+        open={!!editSurveyModal}
+        survey={editSurveyModal}
+        companyVehicles={companyVehicles}
+        companyUsers={companyUsers}
+        onClose={() => setEditSurveyModal(null)}
+        onUpdated={() => {
+          setFlash({ type: "success", message: "Pregunta actualizada." });
+          loadSurveys();
+        }}
+      />
+
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -1020,6 +1045,7 @@ export default function DashboardAdmin({ data: initialData }) {
         open={surveyModalOpen}
         onClose={() => setSurveyModalOpen(false)}
         companyVehicles={companyVehicles}
+        companyUsers={companyUsers}
         onSurveyCreated={() => {
           setFlash({ type: "success", message: "Encuesta creada." });
           loadSurveys();

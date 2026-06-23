@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { api } from '../services/api';
 
-export default function SurveyBuilderModal({ open, onClose, companyVehicles, onSurveyCreated, isSuperadmin = false, companies = [] }) {
+export default function SurveyBuilderModal({ open, onClose, companyVehicles, companyUsers = [], onSurveyCreated, isSuperadmin = false, companies = [] }) {
   const [step, setStep] = useState(1);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
@@ -10,6 +10,9 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [editingOptions, setEditingOptions] = useState(null);
+  const [editingAdmins, setEditingAdmins] = useState(null);
+
+  const admins = companyUsers.filter(u => u.role === 'admin' || u.rol === 'admin');
 
   function resetForm() {
     setStep(1);
@@ -18,6 +21,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
     setQuestions([]);
     setError(null);
     setEditingOptions(null);
+    setEditingAdmins(null);
   }
 
   const vehiclesForStep = isSuperadmin && selectedCompanyId
@@ -38,6 +42,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
         type: 'text',
         required: false,
         options: [],
+        adminsNotificar: [],
       },
     ]);
   }
@@ -81,6 +86,20 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
     ));
   }
 
+  function toggleAdminNotificar(tempId, adminId) {
+    setQuestions(questions.map((q) => {
+      if (q.tempId !== tempId) return q;
+      const actuales = q.adminsNotificar || [];
+      const yaEsta = actuales.includes(adminId);
+      return {
+        ...q,
+        adminsNotificar: yaEsta
+          ? actuales.filter((id) => id !== adminId)
+          : [...actuales, adminId],
+      };
+    }));
+  }
+
   async function handleSave() {
     setError(null);
 
@@ -110,6 +129,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
       type: q.type,
       required: q.required,
       options: q.type === 'radio' ? q.options.filter((o) => o.trim()) : null,
+      adminsNotificar: q.adminsNotificar || [],
     }));
 
     setLoading(true);
@@ -131,10 +151,6 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
   if (!open) return null;
 
   const selectedVehicle = companyVehicles.find((v) => v.id === selectedVehicleId);
-  const getTypeName = (type) => {
-    const types = { text: 'Texto libre', number: 'Número', km: 'Kilómetros', radio: 'Opciones' };
-    return types[type] || type;
-  };
 
   return (
     <>
@@ -151,7 +167,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 'min(700px, 90vw)',
+          width: 'min(760px, 92vw)',
           maxHeight: '90dvh',
           background: 'var(--surface)',
           boxShadow: '0 20px 60px rgba(15,23,42,0.2)',
@@ -187,16 +203,10 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                     id="company-select"
                     value={selectedCompanyId}
                     onChange={(e) => setSelectedCompanyId(e.target.value)}
-                    style={{
-                      borderColor: selectedCompanyId ? 'var(--accent)' : 'var(--border)',
-                      transition: 'border-color 0.2s',
-                    }}
                   >
                     <option value="">-- Elige una empresa --</option>
                     {companies.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -207,16 +217,10 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                   id="vehicle-select"
                   value={selectedVehicleId}
                   onChange={(e) => setSelectedVehicleId(e.target.value)}
-                  style={{
-                    borderColor: selectedVehicleId ? 'var(--accent)' : 'var(--border)',
-                    transition: 'border-color 0.2s',
-                  }}
                 >
                   <option value="">-- Elige un vehículo --</option>
                   {vehiclesForStep.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.model} ({v.plate})
-                    </option>
+                    <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
                   ))}
                 </select>
               </div>
@@ -232,10 +236,11 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                   <thead>
                     <tr>
                       <th>Pregunta</th>
-                      <th style={{ width: '120px' }}>Tipo</th>
-                      <th style={{ width: '80px', textAlign: 'center' }}>Obligatoria</th>
-                      <th style={{ width: '140px' }}>Opciones</th>
-                      <th style={{ width: '70px', textAlign: 'center' }}>Acciones</th>
+                      <th style={{ width: '110px' }}>Tipo</th>
+                      <th style={{ width: '70px', textAlign: 'center' }}>Oblig.</th>
+                      <th style={{ width: '120px' }}>Opciones</th>
+                      <th style={{ width: '120px' }}>Avisos</th>
+                      <th style={{ width: '60px', textAlign: 'center' }}>—</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -247,33 +252,14 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                             value={q.text}
                             onChange={(e) => updateQuestion(q.tempId, 'text', e.target.value)}
                             placeholder="Pregunta"
-                            style={{
-                              width: '100%',
-                              padding: '0.5rem',
-                              border: '1px solid var(--accent)',
-                              borderRadius: '0.25rem',
-                              fontSize: '0.9rem',
-                              boxSizing: 'border-box',
-                              transition: 'border-color 0.2s',
-                            }}
-                            onFocus={(e) => (e.target.style.borderColor = '#1585b3')}
-                            onBlur={(e) => (e.target.style.borderColor = 'var(--accent)')}
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--accent)', borderRadius: '0.25rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
                           />
                         </td>
                         <td>
                           <select
                             value={q.type}
                             onChange={(e) => updateQuestion(q.tempId, 'type', e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '0.5rem',
-                              border: '1px solid var(--accent)',
-                              borderRadius: '0.25rem',
-                              fontSize: '0.85rem',
-                              transition: 'border-color 0.2s',
-                            }}
-                            onFocus={(e) => (e.target.style.borderColor = '#1585b3')}
-                            onBlur={(e) => (e.target.style.borderColor = 'var(--accent)')}
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--accent)', borderRadius: '0.25rem', fontSize: '0.85rem' }}
                           >
                             <option value="text">Texto</option>
                             <option value="number">Número</option>
@@ -286,12 +272,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                             type="checkbox"
                             checked={q.required}
                             onChange={(e) => updateQuestion(q.tempId, 'required', e.target.checked)}
-                            style={{
-                              cursor: 'pointer',
-                              accentColor: 'var(--accent)',
-                              width: '1.2rem',
-                              height: '1.2rem',
-                            }}
+                            style={{ cursor: 'pointer', width: '1.2rem', height: '1.2rem' }}
                           />
                         </td>
                         <td>
@@ -307,6 +288,19 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                           ) : (
                             <span style={{ color: 'var(--muted)', fontSize: '0.85rem' }}>—</span>
                           )}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => setEditingAdmins(editingAdmins === q.tempId ? null : q.tempId)}
+                            className="modal-button modal-button-outline"
+                            style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem', width: '100%' }}
+                            disabled={admins.length === 0}
+                          >
+                            {(q.adminsNotificar || []).length > 0
+                              ? `${q.adminsNotificar.length} admin${q.adminsNotificar.length > 1 ? 's' : ''}`
+                              : 'Sin avisos'}
+                          </button>
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <button
@@ -359,6 +353,34 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
                 </div>
               )}
 
+              {editingAdmins && (
+                <div style={{ padding: '1rem', background: 'var(--bg)', borderRadius: '0.375rem', marginBottom: '1rem', border: '1px solid var(--border)' }}>
+                  <p style={{ margin: '0 0 0.75rem 0', fontWeight: 600, fontSize: '0.9rem' }}>
+                    Avisar por email cuando se responda: {questions.find((q) => q.tempId === editingAdmins)?.text}
+                  </p>
+                  {admins.length === 0 ? (
+                    <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: 0 }}>No hay administradores en la empresa.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      {admins.map((a) => {
+                        const pregunta = questions.find((q) => q.tempId === editingAdmins);
+                        const checked = (pregunta?.adminsNotificar || []).includes(a.id);
+                        return (
+                          <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleAdminNotificar(editingAdmins, a.id)}
+                            />
+                            {a.name} <span style={{ color: 'var(--muted)' }}>({a.email})</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={addQuestion}
@@ -372,22 +394,12 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, onS
         </div>
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="modal-button modal-button-outline"
-            disabled={loading}
-          >
+          <button type="button" onClick={handleClose} className="modal-button modal-button-outline" disabled={loading}>
             Cancelar
           </button>
 
           {step === 2 && (
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="modal-button modal-button-outline"
-              disabled={loading}
-            >
+            <button type="button" onClick={() => setStep(1)} className="modal-button modal-button-outline" disabled={loading}>
               Atrás
             </button>
           )}
@@ -421,6 +433,7 @@ SurveyBuilderModal.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   companyVehicles: PropTypes.array.isRequired,
+  companyUsers: PropTypes.array,
   onSurveyCreated: PropTypes.func.isRequired,
   isSuperadmin: PropTypes.bool,
   companies: PropTypes.array,
