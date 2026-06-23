@@ -2,6 +2,8 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { api } from '../services/api';
 
+const GLOBAL_VALUE = '__global__';
+
 export default function SurveyBuilderModal({ open, onClose, companyVehicles, companyUsers = [], onSurveyCreated, isSuperadmin = false, companies = [] }) {
   const [step, setStep] = useState(1);
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
@@ -13,6 +15,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
   const [editingAdmins, setEditingAdmins] = useState(null);
 
   const admins = companyUsers.filter(u => u.role === 'admin' || u.rol === 'admin');
+  const isGlobal = selectedVehicleId === GLOBAL_VALUE;
 
   function resetForm() {
     setStep(1);
@@ -104,7 +107,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
     setError(null);
 
     if (!selectedVehicleId) {
-      setError('Selecciona un vehículo.');
+      setError('Selecciona un vehículo o la opción global.');
       return;
     }
 
@@ -134,7 +137,8 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
 
     setLoading(true);
     const res = await api.createSurvey({
-      vehicleId: selectedVehicleId,
+      // Global → no se asigna ningún vehículo (la pregunta aplica a todos)
+      vehicleId: isGlobal ? null : selectedVehicleId,
       questions: cleanedQuestions,
     });
     setLoading(false);
@@ -150,7 +154,9 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
 
   if (!open) return null;
 
-  const selectedVehicle = companyVehicles.find((v) => v.id === selectedVehicleId);
+  const selectedVehicle = isGlobal
+    ? null
+    : companyVehicles.find((v) => v.id === selectedVehicleId);
 
   return (
     <>
@@ -183,7 +189,9 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
       >
         <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
           <h3 id="survey-modal-title" style={{ margin: 0 }}>
-            {step === 1 ? 'Crear nueva encuesta' : `Crear preguntas: ${selectedVehicle?.model || ''}`}
+            {step === 1
+              ? 'Crear nueva encuesta'
+              : `Crear preguntas: ${isGlobal ? 'Global (todos los vehículos)' : (selectedVehicle?.model || '')}`}
           </h3>
         </div>
 
@@ -219,10 +227,16 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
                   onChange={(e) => setSelectedVehicleId(e.target.value)}
                 >
                   <option value="">-- Elige un vehículo --</option>
+                  <option value={GLOBAL_VALUE}>🌐 Global (todos los vehículos)</option>
                   {vehiclesForStep.map((v) => (
                     <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
                   ))}
                 </select>
+                {isGlobal && (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.35rem', display: 'block' }}>
+                    Estas preguntas aparecerán en todos los viajes de la empresa, sin importar el vehículo usado.
+                  </span>
+                )}
               </div>
             </>
           ) : (
