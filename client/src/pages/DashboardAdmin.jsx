@@ -20,6 +20,7 @@ export default function DashboardAdmin({ data: initialData }) {
   const [deleteSurveyModal, setDeleteSurveyModal] = useState(null);
   const [editVehicleModal, setEditVehicleModal] = useState(null);
   const [editSurveyModal, setEditSurveyModal] = useState(null);
+  const [showInactiveSurveys, setShowInactiveSurveys] = useState(false);
 
   // Historial
   const [historial, setHistorial] = useState([]);
@@ -497,7 +498,24 @@ export default function DashboardAdmin({ data: initialData }) {
 
         {/* Encuestas configuradas */}
         <div className="table-section">
-          <h3>Preguntas de encuesta</h3>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Preguntas de encuesta</h3>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={showInactiveSurveys}
+                onChange={(e) => setShowInactiveSurveys(e.target.checked)}
+              />
+              Mostrar inactivas
+            </label>
+          </div>
           <table>
             <thead>
               <tr>
@@ -511,7 +529,7 @@ export default function DashboardAdmin({ data: initialData }) {
               </tr>
             </thead>
             <tbody>
-              {companySurveys.length === 0 && (
+              {companySurveys.filter((s) => showInactiveSurveys || s.active).length === 0 && (
                 <tr>
                   <td
                     colSpan={7}
@@ -521,11 +539,15 @@ export default function DashboardAdmin({ data: initialData }) {
                       padding: "1.5rem",
                     }}
                   >
-                    No hay preguntas configuradas todavía.
+                    {showInactiveSurveys
+                      ? "No hay preguntas configuradas todavía."
+                      : "No hay preguntas activas. Activa \"Mostrar inactivas\" para ver el histórico."}
                   </td>
                 </tr>
               )}
-              {companySurveys.map((s) => (
+              {companySurveys
+                .filter((s) => showInactiveSurveys || s.active)
+                .map((s) => (
                 <tr key={s.id}>
                   <td>{s.text}</td>
                   <td>
