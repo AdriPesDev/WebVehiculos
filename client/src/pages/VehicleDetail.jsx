@@ -40,8 +40,8 @@ export default function VehicleDetail() {
         setError(res.error);
       } else {
         setData(res);
-        // Carga la encuesta del viaje activo si existe
-        if (res.activeTrip?.id_uso) {
+        // Carga la encuesta del viaje activo si existe (no aplica en modo solo lectura)
+        if (res.activeTrip?.id_uso && !res.readOnly) {
           api.getEncuestaViaje(res.activeTrip.id_uso)
             .then(enc => setSurveyPreguntas(enc?.preguntas || []))
             .catch(() => setSurveyPreguntas([]));
@@ -59,7 +59,7 @@ export default function VehicleDetail() {
   if (error) return <Layout><p className="alert alert-error">{error}</p></Layout>;
   if (!data)  return <Layout><p>Cargando vehículo...</p></Layout>;
 
-  const { vehicle, vehicleTrips = [], company, activeTrip, canManageTrip, companyUsers = [], maintenanceHistory = [] } = data;
+  const { vehicle, vehicleTrips = [], company, activeTrip, canManageTrip, companyUsers = [], maintenanceHistory = [], readOnly = false } = data;
   const states      = vehicle.states || [];
   const isAvailable = states.includes('disponible') && !activeTrip;
   const rol         = user?.rol || user?.role;
@@ -79,7 +79,6 @@ export default function VehicleDetail() {
 
   // ── Checkin con encuesta ─────────────────────────────────────────────────────
   async function confirmCheckin() {
-    // Valida obligatorias
     for (const q of surveyPreguntas) {
       if (q.obligatoria && !surveyAnswers[q.id_pregunta]) {
         setFlash({ type: 'error', message: `La pregunta "${q.texto}" es obligatoria.` });
@@ -87,7 +86,6 @@ export default function VehicleDetail() {
       }
     }
 
-    // Envía respuestas si hay encuesta
     if (surveyPreguntas.length > 0) {
       const respuestas = Object.entries(surveyAnswers).map(([id_pregunta, valor]) => {
         const pregunta = surveyPreguntas.find(p => p.id_pregunta === parseInt(id_pregunta));
@@ -150,7 +148,6 @@ export default function VehicleDetail() {
         setFlash({ type: 'error', message: res.error });
       }
     } else {
-      // Nombre libre — nuestra API no soporta pasajeros sin cuenta, mostramos aviso
       setAddingPassenger(false);
       setFlash({ type: 'error', message: 'Solo se pueden añadir empleados registrados como pasajeros.' });
     }
@@ -182,6 +179,14 @@ export default function VehicleDetail() {
           <Link to="/dashboard" className="button button-outline">← Volver al panel</Link>
         </div>
 
+        {readOnly && (
+          <Alert
+            type="info"
+            message="Estás viendo este vehículo en modo solo lectura como superadministrador. No puedes registrar viajes ni modificar datos."
+            onClose={() => {}}
+          />
+        )}
+
         {flash && <Alert type={flash.type} message={flash.message} onClose={() => setFlash(null)} />}
 
         {/* ── Tarjetas de info ── */}
@@ -210,8 +215,8 @@ export default function VehicleDetail() {
           </div>
         </div>
 
-        {/* ── Checkout ── */}
-        {isAvailable && (
+        {/* ── Checkout (oculto en modo solo lectura) ── */}
+        {!readOnly && isAvailable && (
           <div className="table-section">
             <h3>Registrar salida</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
@@ -252,8 +257,8 @@ export default function VehicleDetail() {
           </div>
         )}
 
-        {/* ── Reset estado (admin, sin viaje activo) ── */}
-        {rol === 'admin' && !isAvailable && !activeTrip && (
+        {/* ── Reset estado (admin, sin viaje activo, oculto en modo solo lectura) ── */}
+        {!readOnly && rol === 'admin' && !isAvailable && !activeTrip && (
           <div className="table-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <p style={{ margin: 0, color: 'var(--muted)' }}>El vehículo aparece como no disponible sin viaje activo registrado.</p>
             <button className="button button-outline" onClick={() => setResetModal(true)}>
@@ -290,7 +295,7 @@ export default function VehicleDetail() {
                         empleado
                       </span>
                     </span>
-                    {canManageTrip && (
+                    {!readOnly && canManageTrip && (
                       <button
                         className="button button-small button-danger"
                         onClick={() => handleRemovePassenger(p.id || p.user_id)}
@@ -304,8 +309,8 @@ export default function VehicleDetail() {
               </ul>
             </div>
 
-            {/* Añadir pasajero */}
-            {canManageTrip && (
+            {/* Añadir pasajero (oculto en modo solo lectura) */}
+            {!readOnly && canManageTrip && (
               <form onSubmit={handleAddPassenger} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end', marginTop: '0.75rem' }}>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
@@ -354,8 +359,8 @@ export default function VehicleDetail() {
               </form>
             )}
 
-            {/* Checkin */}
-            {canManageTrip && (
+            {/* Checkin (oculto en modo solo lectura) */}
+            {!readOnly && canManageTrip && (
               <div style={{ marginTop: '1.25rem' }}>
                 <button className="button button-outline" onClick={() => setSurveyModal(true)}>
                   Registrar llegada
@@ -429,7 +434,7 @@ export default function VehicleDetail() {
       </section>
 
       {/* ── Modal: restablecer estado ── */}
-      {resetModal && (
+      {!readOnly && resetModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setResetModal(false)} />
           <dialog open className="modal-box" aria-labelledby="reset-modal-title">
@@ -444,7 +449,7 @@ export default function VehicleDetail() {
       )}
 
       {/* ── Modal: encuesta de llegada ── */}
-      {surveyModal && (
+      {!readOnly && surveyModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setSurveyModal(false)} />
           <dialog open className="modal-box modal-survey" aria-labelledby="survey-title">
