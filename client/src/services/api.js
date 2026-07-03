@@ -13,7 +13,11 @@ async function request(path, opts = {}) {
     ...opts.headers,
   };
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...opts, headers });
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...opts,
+    headers,
+    credentials: "include",
+  });
   const data = await response.json();
 
   if (response.status === 401) {
