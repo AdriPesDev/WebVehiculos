@@ -1,37 +1,36 @@
 /* eslint-disable react-refresh/only-export-components */
 import PropTypes from "prop-types";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { api } from "../services/api";
+import api from "../api/client";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(undefined); // undefined = cargando, null = no autenticado
+  const [user, setUser] = useState(undefined);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
-      .me()
-      .then((data) => {
-        const u = data?.user ?? null;
+      .get("/auth/me")
+      .then(({ data }) => {
+        const u = data ?? null;
         setUser(u);
-        if (u) {
-          localStorage.setItem(
-            "usuario",
-            JSON.stringify({
-              id_usuario: u.id_usuario || u.id,
-              nombre: u.nombre || u.name,
-              email: u.email,
-              rol: u.rol || u.role,
-              id_empresa: u.id_empresa || u.company_id,
-              activo: u.activo ?? u.active,
-            }),
-          );
+        if (u && u.id_usuario) {
+          localStorage.setItem("usuario", JSON.stringify(u));
         }
       })
-      .catch(() => setUser(null));
+      .catch(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("usuario");
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const value = useMemo(() => ({ user, setUser }), [user, setUser]);
+  const value = useMemo(
+    () => ({ user, setUser, loading }),
+    [user, setUser, loading],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -41,5 +40,7 @@ AuthProvider.propTypes = {
 };
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>");
+  return ctx;
 }
