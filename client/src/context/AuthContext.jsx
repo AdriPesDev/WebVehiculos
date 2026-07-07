@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import PropTypes from "prop-types";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import api from "../services/api";
+import { api } from "../services/api";
 
 const AuthContext = createContext(null);
 
