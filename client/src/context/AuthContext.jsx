@@ -11,12 +11,22 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     api
-      .get("/auth/me")
-      .then(({ data }) => {
-        const u = data ?? null;
+      .me()
+      .then((data) => {
+        const u = data?.user ?? null;
         setUser(u);
-        if (u && u.id_usuario) {
-          localStorage.setItem("usuario", JSON.stringify(u));
+        if (u) {
+          localStorage.setItem(
+            "usuario",
+            JSON.stringify({
+              id_usuario: u.id_usuario || u.id,
+              nombre: u.nombre || u.name,
+              email: u.email,
+              rol: u.rol || u.role,
+              id_empresa: u.id_empresa || u.company_id,
+              activo: u.activo ?? u.active,
+            }),
+          );
         }
       })
       .catch(() => {
@@ -27,9 +37,34 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  async function login(email, password) {
+    const res = await api.login(email, password);
+    setUser(res);
+    return res;
+  }
+
+  function logout() {
+    api.logout();
+    setUser(null);
+  }
+
+  function hasRole(roles) {
+    if (!user) return false;
+    const allowed = Array.isArray(roles) ? roles : [roles];
+    return allowed.includes(user.rol || user.role);
+  }
+
   const value = useMemo(
-    () => ({ user, setUser, loading }),
-    [user, setUser, loading],
+    () => ({
+      user,
+      setUser,
+      loading,
+      login,
+      logout,
+      hasRole,
+      isAuthenticated: !!user,
+    }),
+    [user, loading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
