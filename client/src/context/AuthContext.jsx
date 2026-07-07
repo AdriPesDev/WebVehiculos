@@ -18,12 +18,12 @@ export function AuthProvider({ children }) {
           localStorage.setItem(
             "usuario",
             JSON.stringify({
-              id_usuario: u.id,
+              id_usuario: u.id_usuario || u.id,
               nombre: u.nombre || u.name,
               email: u.email,
               rol: u.rol || u.role,
-              id_empresa: u.company_id,
-              activo: u.active,
+              id_empresa: u.id_empresa || u.company_id,
+              activo: u.activo ?? u.active,
             }),
           );
         }
