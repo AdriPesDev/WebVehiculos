@@ -26,6 +26,9 @@ PrivateRoute.propTypes = { children: PropTypes.node.isRequired };
 // Ruta pública: redirige al dashboard si ya hay sesión
 function PublicRoute({ children }) {
   const { user } = useAuth();
+  const stored = JSON.parse(localStorage.getItem("usuario") || "null");
+  if (stored?.email === "kiosko@nethive.es")
+    return <Navigate to="/kiosko" replace />;
   if (user === undefined)
     return (
       <div className="container">
@@ -37,12 +40,28 @@ function PublicRoute({ children }) {
 }
 PublicRoute.propTypes = { children: PropTypes.node.isRequired };
 
+// Redirige al destino correcto según el tipo de usuario
+function SmartRedirect() {
+  const { user } = useAuth();
+  const stored = JSON.parse(localStorage.getItem("usuario") || "null");
+  if (stored?.email === "kiosko@nethive.es")
+    return <Navigate to="/kiosko" replace />;
+  if (user === undefined)
+    return (
+      <div className="container">
+        <p>Cargando...</p>
+      </div>
+    );
+  if (user === null) return <Navigate to="/login" replace />;
+  return <Navigate to="/dashboard" replace />;
+}
+
 // ─── Rutas ────────────────────────────────────────────────────────────────────
 function AppRoutes() {
   return (
     <Routes>
       {/* Raíz → dashboard */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<SmartRedirect />} />
 
       {/* Login (para empleados que no entran por SSO) */}
       <Route
