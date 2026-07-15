@@ -25,6 +25,8 @@ export default function DashboardAdmin({ data: initialData }) {
   // Historial
   const [historial, setHistorial] = useState([]);
   const [historialCargado, setHistorialCargado] = useState(false);
+  const [filtroConductor, setFiltroConductor] = useState("");
+  const [filtroVehiculo, setFiltroVehiculo] = useState("");
   const [expandedTrip, setExpandedTrip] = useState(null);
   const [tripEncuestas, setTripEncuestas] = useState({});
 
@@ -216,6 +218,21 @@ export default function DashboardAdmin({ data: initialData }) {
     }));
     setFlash({ type: "success", message: "Vehículo actualizado." });
   }
+
+  const historialFiltrado = historial.filter((t) => {
+    const c = filtroConductor.trim().toLowerCase();
+    const v = filtroVehiculo.trim().toLowerCase();
+    const conductorOk =
+      !c || (t.nombre_conductor || "").toLowerCase().includes(c);
+    const vehiculoOk =
+      !v ||
+      [t.marca, t.modelo, t.matricula]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(v);
+    return conductorOk && vehiculoOk;
+  });
 
   return (
     <Layout>
@@ -648,6 +665,31 @@ export default function DashboardAdmin({ data: initialData }) {
             )}
           </div>
           {historialCargado && (
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                flexWrap: "wrap",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Filtrar por conductor..."
+                value={filtroConductor}
+                onChange={(e) => setFiltroConductor(e.target.value)}
+                style={{ maxWidth: "240px" }}
+              />
+              <input
+                type="text"
+                placeholder="Filtrar por vehículo o matrícula..."
+                value={filtroVehiculo}
+                onChange={(e) => setFiltroVehiculo(e.target.value)}
+                style={{ maxWidth: "240px" }}
+              />
+            </div>
+          )}
+          {historialCargado && (
             <table>
               <thead>
                 <tr>
@@ -661,7 +703,7 @@ export default function DashboardAdmin({ data: initialData }) {
                 </tr>
               </thead>
               <tbody>
-                {historial.length === 0 && (
+                {historialFiltrado.length === 0 && (
                   <tr>
                     <td
                       colSpan={7}
@@ -671,11 +713,13 @@ export default function DashboardAdmin({ data: initialData }) {
                         padding: "1.5rem",
                       }}
                     >
-                      Sin viajes registrados.
+                      {historial.length === 0
+                        ? "Sin viajes registrados."
+                        : "Ningún viaje coincide con el filtro."}
                     </td>
                   </tr>
                 )}
-                {historial.map((t) => (
+                {historialFiltrado.map((t) => (
                   <>
                     <tr
                       key={t.id_uso}
