@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-15T00:00:00Z",
+  "title": "Design System: WebVehiculos",
+  "extensions": {
+    "colorMeta": {
+      "accent": { "role": "primary", "displayName": "Azul Nethive", "canonical": "#009FE3", "tonalRamp": ["#062E42", "#0A4A6B", "#0077AA", "#009FE3", "#3DB8EC", "#7FD1F3", "#B8E6F8", "#E6F5FC"] },
+      "ink": { "role": "neutral", "displayName": "Tinta", "canonical": "#162333", "tonalRamp": ["#0B1119", "#162333", "#283850", "#45556C", "#64748B", "#9CA3B4", "#C7CDD6", "#EDEFF2"] },
+      "paper": { "role": "neutral", "displayName": "Papel", "canonical": "#F7F8F9", "tonalRamp": ["#1A1D21", "#3A3F45", "#64748B", "#9CA3B4", "#DCE2E8", "#F8FAFC", "#F7F8F9", "#FFFFFF"] },
+      "ok": { "role": "tertiary", "displayName": "OK Verde", "canonical": "#2E9E6B", "tonalRamp": ["#0E3826", "#175C3E", "#237E54", "#2E9E6B", "#54B487", "#84CBA9", "#B6E1CD", "#E7F5EE"] },
+      "warn": { "role": "tertiary", "displayName": "Warn Ámbar", "canonical": "#D89A12", "tonalRamp": ["#4A350A", "#6E4F0F", "#A0741A", "#D89A12", "#E6B347", "#EFCB7C", "#F6E2B2", "#FDF5E1"] },
+      "bad": { "role": "tertiary", "displayName": "Bad Rojo", "canonical": "#D85B4A", "tonalRamp": ["#4A1B14", "#6E271D", "#A03A2C", "#D85B4A", "#E48376", "#EEA9A0", "#F5CEC9", "#FBEAE8"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Títulos de héroe en la home pública; único uso de tamaño fluido." },
+      "stat": { "displayName": "Stat", "purpose": "El número grande de las tarjetas de estadística de administración." },
+      "title": { "displayName": "Title", "purpose": "Títulos de sección y de tarjeta." },
+      "body": { "displayName": "Body", "purpose": "Copia, etiquetas de formulario, descripciones." },
+      "label": { "displayName": "Label", "purpose": "Encabezados de tabla y eyebrows uppercase; solo marca estructura." }
+    },
+    "shadows": [
+      { "name": "ambient-soft", "value": "0 4px 24px rgba(15,23,42,0.05)", "purpose": "Reposo de tarjetas de contenido." },
+      { "name": "hover-lift", "value": "0 12px 24px rgba(15,23,42,0.10)", "purpose": "Estado hover de tarjetas, junto al translateY." },
+      { "name": "accent-glow", "value": "0 8px 20px rgba(0,159,227,0.35)", "purpose": "Halo azul bajo botones primarios/outline al hover." },
+      { "name": "overlay", "value": "0 20px 60px rgba(15,23,42,0.20)", "purpose": "Modales que se sitúan delante de la página." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "ease", "purpose": "Transiciones de estado (150–250ms)." },
+      { "name": "press", "value": "scale(0.97)", "purpose": "Feedback :active en botones." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción primaria única por vista (registrar, confirmar).",
+      "html": "<button class=\"ds-btn-primary\">Registrar salida</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; background:var(--accent,#009FE3); color:#fff; border:none; border-radius:999px; padding:0.7rem 1.25rem; font-weight:600; font-family:IBM Plex Sans,system-ui,sans-serif; cursor:pointer; transition:background 0.15s ease, box-shadow 0.15s ease; } .ds-btn-primary:hover { background:var(--accent-deep,#0077AA); box-shadow:0 6px 16px rgba(0,159,227,0.28); } .ds-btn-primary:active { transform:scale(0.97); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Acción secundaria destacada; se rellena de accent al hover.",
+      "html": "<button class=\"ds-btn-outline\">Ver detalle</button>",
+      "css": ".ds-btn-outline { display:inline-flex; align-items:center; justify-content:center; gap:0.5rem; background:transparent; color:var(--accent,#009FE3); border:1.5px solid var(--accent,#009FE3); border-radius:999px; padding:0.7rem 1.25rem; font-weight:600; font-family:IBM Plex Sans,system-ui,sans-serif; cursor:pointer; transition:background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; } .ds-btn-outline:hover { background:var(--accent,#009FE3); color:#fff; box-shadow:0 6px 16px rgba(0,159,227,0.22); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de formulario con anillo de foco accent.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Matrícula...\" />",
+      "css": ".ds-input { width:100%; background:#fff; color:var(--ink,#162333); border:1px solid var(--line,#DCE2E8); border-radius:0.9rem; padding:0.9rem 1rem; font-size:1rem; font-family:IBM Plex Sans,system-ui,sans-serif; outline:none; transition:border-color 0.2s ease, box-shadow 0.2s ease; } .ds-input::placeholder { color:var(--muted,#64748B); } .ds-input:focus { border-color:var(--accent,#009FE3); box-shadow:0 0 0 3px rgba(0,159,227,0.15); }"
+    },
+    {
+      "name": "Content Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Tarjeta plana en reposo que se eleva al hover.",
+      "html": "<div class=\"ds-card\"><h3>Furgoneta 1234-ABC</h3><p>Disponible · 45.200 km</p></div>",
+      "css": ".ds-card { background:#fff; border:1px solid var(--line,#DCE2E8); border-radius:1.2rem; padding:1.5rem; font-family:IBM Plex Sans,system-ui,sans-serif; color:var(--ink,#162333); box-shadow:0 4px 24px rgba(15,23,42,0.05); transition:transform 0.25s ease, box-shadow 0.25s ease; } .ds-card:hover { transform:translateY(-5px); box-shadow:0 12px 24px rgba(15,23,42,0.10); } .ds-card h3 { margin:0 0 0.4rem; font-size:1.05rem; font-weight:700; } .ds-card p { margin:0; font-size:0.9rem; color:var(--muted,#64748B); }"
+    },
+    {
+      "name": "Kiosk Action Button",
+      "kind": "button",
+      "refersTo": "kiosk-action",
+      "description": "Botón de acción de campo, diana de toque grande.",
+      "html": "<button class=\"ds-kiosk-action\">Confirmar salida</button>",
+      "css": ".ds-kiosk-action { display:inline-flex; align-items:center; justify-content:center; background:#2E9E6B; color:#fff; border:none; border-radius:0.75rem; padding:1rem 2rem; font-size:1.2rem; font-weight:600; font-family:IBM Plex Sans,system-ui,sans-serif; min-height:56px; min-width:200px; cursor:pointer; transition:transform 0.15s ease; } .ds-kiosk-action:active { transform:scale(0.97); }"
+    },
+    {
+      "name": "Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Etiqueta píldora neutra.",
+      "html": "<span class=\"ds-badge\">Disponible</span>",
+      "css": ".ds-badge { display:inline-block; background:var(--line,#DCE2E8); color:var(--ink,#162333); border-radius:999px; padding:0.35rem 0.75rem; font-size:0.82rem; font-weight:700; font-family:IBM Plex Sans,system-ui,sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Parte de Ruta (The Dispatch Board)",
+    "overview": "WebVehiculos es la herramienta de flota de Nethive: un empleado de campo registra la salida o la llegada de un viaje en pocos toques, muchas veces desde un kiosko compartido o su móvil, con prisa y a veces con mala luz. Se comporta como un parte de ruta físico clavado en la pared del garaje — una acción evidente a la vez, estado legible a un brazo, cero adorno. Toda la personalidad la carga un único azul Nethive que aparece solo donde hay que actuar. Hereda la disciplina de Nethive Portal (misma paleta, One Accent Rule, plano por defecto) y la tensa hacia el turno de campo: dianas de toque grandes, jerarquía brutal, y un admin con densidad honesta sin volverse sopa de datos.",
+    "keyCharacteristics": [
+      "Un solo azul Nethive, raro y con propósito — nunca como fondo ni decoración.",
+      "Plano por defecto; la sombra responde a la interacción, no adorna el reposo.",
+      "Kiosko primero: dianas de toque ≥56px, una acción primaria inconfundible por pantalla.",
+      "Verde, rojo y ámbar reservados a su significado — acción de entrada/salida, estado y aviso/mantenimiento — nunca color de marca.",
+      "Una sola familia tipográfica (Inter) hace titulares, etiquetas, datos y cuerpo."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "El azul Nethive es el único color que dice 'actúa aquí'. Si más de un elemento por vista usa el relleno accent, la jerarquía está rota — degrada el sobrante a neutro.", "section": "colors" },
+      { "name": "The Semantic Status Rule", "body": "Verde, rojo y ámbar nunca son color de marca. Aparecen solo por su significado: estado (ok/warn/bad), acción de campo (salida/llegada, Sí/No) y aviso/mantenimiento (ámbar).", "section": "colors" },
+      { "name": "The Structural Label Rule", "body": "El estilo mayúscula-tracked marca estructura (encabezado de tabla, categoría, rol). Si no marca un límite, no lleva ese tratamiento.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Nada lleva sombra por estar en la página. La sombra se gana flotando (overlay) o respondiendo a la interacción (hover-lift).", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reservar el azul Nethive (#009FE3) para la única acción primaria o el estado activo/seleccionado por vista.",
+      "Do mantener toda superficie plana en reposo; sombra solo para overlays o hover-lift.",
+      "Do usar verde, rojo y ámbar solo por su significado — estado, acción de campo o aviso/mantenimiento — nunca como color de marca.",
+      "Do dar a las acciones de kiosko dianas de toque ≥56px y una acción primaria inconfundible por pantalla.",
+      "Do reservar el estilo mayúscula-tracked para marcar estructura, no como énfasis.",
+      "Do honrar prefers-reduced-motion y anillos de foco visibles; cuerpo/placeholder en ≥4.5:1."
+    ],
+    "donts": [
+      "Don't construir el look enterprise/ERP anticuado: tablas grises densas, tipografía diminuta, intranet de 2005.",
+      "Don't caer en lo consumer/juguetón: UI de burbujas, badges gamificados, emoji por decoración.",
+      "Don't usar el SaaS de IA genérico: degradados morados, glassmorphism decorativo, la plantilla del dato-héroe, rejillas de tarjetas idénticas.",
+      "Don't sobrecargar el dashboard: todo a la vez, sin jerarquía, sopa de gráficos.",
+      "Don't usar texto con degradado (background-clip:text) — emphasis por peso o tamaño. El .hero-title actual es deuda a saldar.",
+      "Don't usar border-left >1px como franja decorativa en tarjetas o alertas. Las .alert-* actuales son deuda a saldar.",
+      "Don't aplicar backdrop-filter blur decorativo. La topbar actual es deuda a saldar."
+    ]
+  }
+}
