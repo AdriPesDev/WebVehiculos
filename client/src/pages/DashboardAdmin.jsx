@@ -9,6 +9,9 @@ import Drawer from "../components/Drawer";
 import SurveyBuilderModal from "../components/SurveyBuilderModal";
 import SurveyEditModal from "../components/SurveyEditModal";
 import VehicleEditModal from "../components/VehicleEditModal";
+import Icon from "../components/icons";
+import Dropdown from "../components/Dropdown";
+import CollapsibleSection from "../components/CollapsibleSection";
 
 export default function DashboardAdmin({ data: initialData }) {
   const [data, setData] = useState(initialData);
@@ -234,6 +237,22 @@ export default function DashboardAdmin({ data: initialData }) {
     return conductorOk && vehiculoOk;
   });
 
+  // Opciones de los filtros del historial (desplegables)
+  const conductoresHistorial = [
+    ...new Set(historial.map((t) => t.nombre_conductor).filter(Boolean)),
+  ].sort((a, b) => a.localeCompare(b, "es"));
+  const opcionesConductor = [
+    { value: "", label: "Todos los conductores" },
+    ...conductoresHistorial.map((n) => ({ value: n, label: n })),
+  ];
+  const opcionesVehiculo = [
+    { value: "", label: "Todos los vehículos" },
+    ...companyVehicles.map((v) => ({
+      value: v.plate,
+      label: `${v.model} (${v.plate})`,
+    })),
+  ];
+
   return (
     <Layout>
       <section className="dashboard">
@@ -241,7 +260,7 @@ export default function DashboardAdmin({ data: initialData }) {
           <div>
             <h2>Panel administrativo</h2>
             <p>
-              Empresa: <strong>{company.name}</strong>
+             <strong>{company.name}</strong>
             </p>
           </div>
           <div className="dashboard-actions">
@@ -252,7 +271,7 @@ export default function DashboardAdmin({ data: initialData }) {
                 setDrawerOpen(true);
               }}
             >
-              🚗➕ Añadir vehículo
+              <Icon name="van" size={18} /> Añadir vehículo
             </button>
             <button
               className="button button-outline"
@@ -261,16 +280,16 @@ export default function DashboardAdmin({ data: initialData }) {
                 setDrawerOpen(true);
               }}
             >
-              👷➕ Añadir empleado
+              <Icon name="user" size={18} /> Añadir empleado
             </button>
             <button
               className="button button-outline"
               onClick={() => setSurveyModalOpen(true)}
             >
-              📋➕ Añadir encuesta
+              <Icon name="clipboard" size={18} /> Añadir encuesta
             </button>
             <Link to="/kiosko" className="button button-outline">
-              📟 Modo kiosco
+              <Icon name="monitor" size={18} /> Modo kiosco
             </Link>
           </div>
         </div>
@@ -286,19 +305,19 @@ export default function DashboardAdmin({ data: initialData }) {
         {/* Tarjetas */}
         <div className="admin-cards">
           <div className="admin-card admin-card-vehicles">
-            <h3>🚗 Vehículos</h3>
+            <h3><Icon name="van" size={16} className="h-icon" /> Vehículos</h3>
             <span className="stat-number">{companyVehicles.length}</span>
             <p>en flota</p>
           </div>
           <div className="admin-card admin-card-employees">
-            <h3>👥 Empleados</h3>
+            <h3><Icon name="users" size={16} className="h-icon" /> Empleados</h3>
             <span className="stat-number">
               {companyUsers.filter((u) => u.role === "empleado").length}
             </span>
             <p>empleados activos</p>
           </div>
           <div className="admin-card admin-card-requests">
-            <h3>⏳ Solicitudes</h3>
+            <h3><Icon name="clock" size={16} className="h-icon" /> Solicitudes</h3>
             <span className="stat-number">{pendingRequests.length}</span>
             <p>por revisar</p>
           </div>
@@ -306,8 +325,13 @@ export default function DashboardAdmin({ data: initialData }) {
 
         {/* Solicitudes pendientes */}
         {pendingRequests.length > 0 && (
-          <div className="table-section">
-            <h3>Solicitudes de membresía pendientes</h3>
+          <CollapsibleSection
+            title="Solicitudes de membresía pendientes"
+            count={pendingRequests.length}
+            countVariant="badge-warning"
+            defaultOpen
+            className="table-section-warning"
+          >
             <table>
               <thead>
                 <tr>
@@ -346,12 +370,14 @@ export default function DashboardAdmin({ data: initialData }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Vehículos */}
-        <div className="table-section">
-          <h3>Vehículos de la empresa</h3>
+        <CollapsibleSection
+          title="Vehículos de la empresa"
+          count={companyVehicles.length}
+        >
           <table>
             <thead>
               <tr>
@@ -393,19 +419,25 @@ export default function DashboardAdmin({ data: initialData }) {
                     <td className="table-actions">
                       <Link
                         to={`/vehicle/${v.id}`}
-                        className="button button-small button-outline"
+                        className="icon-btn icon-btn-accent"
+                        title="Ver detalles"
+                        aria-label="Ver detalles"
                       >
-                        Detalles
+                        <Icon name="eye" />
                       </Link>
                       <button
-                        className="button button-small button-outline"
+                        className="icon-btn icon-btn-accent"
+                        title="Editar vehículo"
+                        aria-label="Editar vehículo"
                         onClick={() => setEditVehicleModal(v)}
                       >
-                        ✏️ Editar
+                        <Icon name="pencil" />
                       </button>
                       {inMaint ? (
                         <button
-                          className="button button-small button-warning"
+                          className="icon-btn icon-btn-warning"
+                          title="Finalizar mantenimiento"
+                          aria-label="Finalizar mantenimiento"
                           disabled={maintLoading}
                           onClick={() =>
                             setEndMaintModal({
@@ -414,11 +446,13 @@ export default function DashboardAdmin({ data: initialData }) {
                             })
                           }
                         >
-                          Fin mant.
+                          <Icon name="check" />
                         </button>
                       ) : (
                         <button
-                          className="button button-small button-warning"
+                          className="icon-btn icon-btn-warning"
+                          title="Poner en mantenimiento"
+                          aria-label="Poner en mantenimiento"
                           disabled={maintLoading}
                           onClick={() =>
                             setMaintModal({
@@ -428,11 +462,13 @@ export default function DashboardAdmin({ data: initialData }) {
                             })
                           }
                         >
-                          Mantenimiento
+                          <Icon name="wrench" />
                         </button>
                       )}
                       <button
-                        className="button button-small button-danger"
+                        className="icon-btn icon-btn-danger"
+                        title="Eliminar vehículo"
+                        aria-label="Eliminar vehículo"
                         onClick={() =>
                           setDeleteModal({
                             vehicleId: v.id,
@@ -440,7 +476,7 @@ export default function DashboardAdmin({ data: initialData }) {
                           })
                         }
                       >
-                        Eliminar
+                        <Icon name="trash" />
                       </button>
                     </td>
                   </tr>
@@ -448,11 +484,13 @@ export default function DashboardAdmin({ data: initialData }) {
               })}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
 
         {/* Empleados */}
-        <div className="table-section">
-          <h3>Empleados de la empresa</h3>
+        <CollapsibleSection
+          title="Empleados de la empresa"
+          count={companyUsers.length}
+        >
           <table>
             <thead>
               <tr>
@@ -482,28 +520,29 @@ export default function DashboardAdmin({ data: initialData }) {
                   <td>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
-                    <select
+                    <Dropdown
+                      variant="badge"
+                      ariaLabel="Cambiar rol"
                       value={u.role}
-                      onChange={(e) => handleChangeRol(u.id, e.target.value)}
-                      className="badge"
-                      style={{
-                        cursor: "pointer",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <option value="empleado">empleado</option>
-                      <option value="admin">admin</option>
-                    </select>
+                      onChange={(val) => handleChangeRol(u.id, val)}
+                      options={[
+                        { value: "empleado", label: "Empleado" },
+                        { value: "admin", label: "Admin" },
+                      ]}
+                      minWidth={140}
+                    />
                   </td>
                   <td>
                     {u.role === "empleado" && (
                       <button
-                        className="button button-small button-danger"
+                        className="icon-btn icon-btn-danger"
+                        title="Quitar empleado"
+                        aria-label="Quitar empleado"
                         onClick={() =>
                           setRemoveEmpModal({ userId: u.id, userName: u.name })
                         }
                       >
-                        Quitar
+                        <Icon name="trash" />
                       </button>
                     )}
                   </td>
@@ -511,19 +550,13 @@ export default function DashboardAdmin({ data: initialData }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
 
         {/* Encuestas configuradas */}
-        <div className="table-section">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "0.75rem",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>Preguntas de encuesta</h3>
+        <CollapsibleSection
+          title="Preguntas de encuesta"
+          count={companySurveys.filter((s) => showInactiveSurveys || s.active).length}
+          headerExtra={
             <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", cursor: "pointer" }}>
               <input
                 type="checkbox"
@@ -532,7 +565,8 @@ export default function DashboardAdmin({ data: initialData }) {
               />
               Mostrar inactivas
             </label>
-          </div>
+          }
+        >
           <table>
             <thead>
               <tr>
@@ -571,7 +605,7 @@ export default function DashboardAdmin({ data: initialData }) {
                     <span className="badge">{s.type}</span>
                   </td>
                   <td>{s.vehicleName}</td>
-                  <td>{s.required ? "✓" : "—"}</td>
+                  <td>{s.required ? <Icon name="check" size={16} style={{ color: "var(--success)", verticalAlign: "-3px" }} /> : "—"}</td>
                   <td>
                     {s.adminsNotificar?.length > 0
                       ? `${s.adminsNotificar.length} admin${s.adminsNotificar.length > 1 ? "s" : ""}`
@@ -586,13 +620,17 @@ export default function DashboardAdmin({ data: initialData }) {
                   </td>
                   <td className="table-actions">
                     <button
-                      className="button button-small button-outline"
+                      className="icon-btn icon-btn-accent"
+                      title="Editar encuesta"
+                      aria-label="Editar encuesta"
                       onClick={() => setEditSurveyModal(s)}
                     >
-                      ✏️ Editar
+                      <Icon name="pencil" />
                     </button>
                     <button
-                      className="button button-small button-danger"
+                      className="icon-btn icon-btn-danger"
+                      title="Eliminar encuesta"
+                      aria-label="Eliminar encuesta"
                       onClick={() =>
                         setDeleteSurveyModal({
                           surveyId: s.id,
@@ -600,19 +638,18 @@ export default function DashboardAdmin({ data: initialData }) {
                         })
                       }
                     >
-                      Eliminar
+                      <Icon name="trash" />
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
 
         {/* Viajes activos */}
         {activeTrips.length > 0 && (
-          <div className="table-section">
-            <h3>Viajes en curso ({activeTrips.length})</h3>
+          <CollapsibleSection title="Viajes en curso" count={activeTrips.length}>
             <table>
               <thead>
                 <tr>
@@ -644,26 +681,21 @@ export default function DashboardAdmin({ data: initialData }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </CollapsibleSection>
         )}
 
         {/* Historial de viajes */}
-        <div className="table-section">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "0.75rem",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>Historial de viajes</h3>
-            {!historialCargado && (
+        <CollapsibleSection
+          title="Historial de viajes"
+          count={historialCargado ? historialFiltrado.length : undefined}
+          headerExtra={
+            !historialCargado && (
               <button className="button button-outline" onClick={loadHistorial}>
                 Cargar historial
               </button>
-            )}
-          </div>
+            )
+          }
+        >
           {historialCargado && (
             <div
               style={{
@@ -673,19 +705,21 @@ export default function DashboardAdmin({ data: initialData }) {
                 marginBottom: "0.75rem",
               }}
             >
-              <input
-                type="text"
-                placeholder="Filtrar por conductor..."
+              <Dropdown
+                ariaLabel="Filtrar por conductor"
+                placeholder="Todos los conductores"
                 value={filtroConductor}
-                onChange={(e) => setFiltroConductor(e.target.value)}
-                style={{ maxWidth: "240px" }}
+                onChange={setFiltroConductor}
+                options={opcionesConductor}
+                minWidth={220}
               />
-              <input
-                type="text"
-                placeholder="Filtrar por vehículo o matrícula..."
+              <Dropdown
+                ariaLabel="Filtrar por vehículo"
+                placeholder="Todos los vehículos"
                 value={filtroVehiculo}
-                onChange={(e) => setFiltroVehiculo(e.target.value)}
-                style={{ maxWidth: "240px" }}
+                onChange={setFiltroVehiculo}
+                options={opcionesVehiculo}
+                minWidth={240}
               />
             </div>
           )}
@@ -847,7 +881,7 @@ export default function DashboardAdmin({ data: initialData }) {
               Pulsa "Cargar historial" para ver todos los viajes de la empresa.
             </p>
           )}
-        </div>
+        </CollapsibleSection>
       </section>
 
       {/* Modales */}
@@ -907,7 +941,7 @@ export default function DashboardAdmin({ data: initialData }) {
                 htmlFor="invoice-file-admin"
                 className="button button-outline file-btn"
               >
-                📎{" "}
+                <Icon name="paperclip" size={16} />{" "}
                 {invoiceFile ? invoiceFile.name : "Adjuntar factura (opcional)"}
               </label>
               <input

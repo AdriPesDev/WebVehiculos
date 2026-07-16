@@ -5,6 +5,8 @@ import { api } from '../services/api';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
 import Alert from '../components/Alert';
+import Icon from '../components/icons';
+import CollapsibleSection from '../components/CollapsibleSection';
 
 export default function DashboardEmpleado({ data: initialData }) {
   const [data, setData] = useState(initialData);
@@ -48,7 +50,7 @@ export default function DashboardEmpleado({ data: initialData }) {
                 <strong>Pasajeros:</strong> {myActiveTrip.passengers.map(p => p.name).join(', ')}
               </p>
             )}
-            <Link to={`/vehicle/${activeVehicle.id}`} className="button button-small button-outline">
+            <Link to={`/vehicle/${activeVehicle.id}`} className="button button-small button-primary">
               Gestionar viaje y pasajeros
             </Link>
           </div>
@@ -56,19 +58,18 @@ export default function DashboardEmpleado({ data: initialData }) {
 
         <div className="admin-cards">
           <div className="admin-card admin-card-vehicles">
-            <h3>🚗 Vehículos</h3>
+            <h3><Icon name="van" size={16} className="h-icon" /> Vehículos</h3>
             <span className="stat-number">{companyVehicles.length}</span>
             <p>disponibles en flota</p>
           </div>
           <div className="admin-card admin-card-employees">
-            <h3>🛣️ Mis viajes</h3>
+            <h3><Icon name="route" size={16} className="h-icon" /> Mis viajes</h3>
             <span className="stat-number">{userTrips.length}</span>
             <p>viajes realizados</p>
           </div>
         </div>
 
-        <div className="table-section">
-          <h3>Vehículos de la empresa</h3>
+        <CollapsibleSection title="Vehículos de la empresa">
           <table>
             <thead>
               <tr>
@@ -89,9 +90,11 @@ export default function DashboardEmpleado({ data: initialData }) {
                     <td><Badge states={states} /></td>
                     <td>{v.location}</td>
                     <td className="table-actions">
-                      <Link to={`/vehicle/${v.id}`} className="button button-small button-outline">Detalles</Link>
+                      <Link to={`/vehicle/${v.id}`} className="icon-btn icon-btn-accent" title="Ver detalles" aria-label="Ver detalles">
+                        <Icon name="eye" />
+                      </Link>
                       {enUso && (
-                        <button className="button button-small" onClick={() => handleCheckin(v.id)}>
+                        <button className="button button-small button-outline" onClick={() => handleCheckin(v.id)}>
                           Registrar entrada
                         </button>
                       )}
@@ -101,11 +104,10 @@ export default function DashboardEmpleado({ data: initialData }) {
               })}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
 
         {userTrips.length > 0 && (
-          <div className="table-section">
-            <h3>Mis viajes</h3>
+          <CollapsibleSection title="Mis viajes">
             <table>
               <thead>
                 <tr>
@@ -130,7 +132,7 @@ export default function DashboardEmpleado({ data: initialData }) {
                 })}
               </tbody>
             </table>
-          </div>
+          </CollapsibleSection>
         )}
       </section>
     </Layout>

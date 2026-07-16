@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { api } from '../services/api';
+import Icon from './icons';
 
 const GLOBAL_VALUE = '__global__';
 
@@ -197,7 +198,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {error && (
-            <div style={{ padding: '0.75rem', background: '#fee', border: '1px solid #fcc', borderRadius: '0.25rem', marginBottom: '1rem', color: '#c33', fontSize: '0.9rem' }}>
+            <div style={{ padding: '0.75rem', background: '#FBEAE8', border: '1px solid #F0C4BF', borderRadius: '0.25rem', marginBottom: '1rem', color: '#D85B4A', fontSize: '0.9rem' }}>
               {error}
             </div>
           )}
@@ -227,7 +228,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
                   onChange={(e) => setSelectedVehicleId(e.target.value)}
                 >
                   <option value="">-- Elige un vehículo --</option>
-                  <option value={GLOBAL_VALUE}>🌐 Global (todos los vehículos)</option>
+                  <option value={GLOBAL_VALUE}>Global (todos los vehículos)</option>
                   {vehiclesForStep.map((v) => (
                     <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
                   ))}
@@ -321,9 +322,9 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
                             type="button"
                             onClick={() => deleteQuestion(q.tempId)}
                             className="modal-button modal-button-danger"
-                            style={{ fontSize: '0.8rem', padding: '0.4rem 0.6rem' }}
+                            style={{ display: 'inline-flex', padding: '0.4rem 0.6rem' }}
                           >
-                            ✕
+                            <Icon name="x" size={14} />
                           </button>
                         </td>
                       </tr>

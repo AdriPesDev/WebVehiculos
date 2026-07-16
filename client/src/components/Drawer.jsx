@@ -2,6 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { api } from '../services/api';
 import Alert from './Alert';
+import Icon from './icons';
 
 export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded, initialTab = 'vehicle', isSuperadmin = false, companies = [] }) {
   // Vehicle form state
@@ -110,7 +111,7 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
       >
         <div className="drawer-header">
           <h3 id="drawer-title" style={{ margin: 0 }}>{title}</h3>
-          <button className="drawer-close" onClick={onClose} aria-label="Cerrar">✕</button>
+          <button className="drawer-close" onClick={onClose} aria-label="Cerrar"><Icon name="x" size={20} /></button>
         </div>
 
         <div className="drawer-body">

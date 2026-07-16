@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
+import Icon from '../components/icons';
 
 export default function DashboardNoCompany() {
   const { user } = useAuth();
@@ -15,12 +16,12 @@ export default function DashboardNoCompany() {
 
         <div className="admin-cards">
           <div className="admin-card admin-card-vehicles" style={{ textAlign: 'center' }}>
-            <h3>🏢 Crear empresa</h3>
+            <h3><Icon name="building" size={16} className="h-icon" /> Crear empresa</h3>
             <p>Crea tu propia empresa y gestiona tu flota.</p>
             <Link to="/company/create" className="button button-primary">Crear empresa</Link>
           </div>
           <div className="admin-card admin-card-employees" style={{ textAlign: 'center' }}>
-            <h3>🤝 Unirse a empresa</h3>
+            <h3><Icon name="handshake" size={16} className="h-icon" /> Unirse a empresa</h3>
             <p>Solicita unirte a una empresa ya registrada.</p>
             <Link to="/company/list" className="button button-outline">Ver empresas</Link>
           </div>

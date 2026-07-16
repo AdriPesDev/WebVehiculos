@@ -25,17 +25,66 @@
 }
 
 :root {
-  --bg: #f5f7fb;
+  /* Paleta corporativa Nethive (ver NethivePortal DESIGN.md) */
+  --bg: #F7F8F9;          /* paper */
   --surface: #ffffff;
-  --text: #1e293b;
-  --muted: #64748b;
-  --primary: #1f2937;
-  --accent: #1aabe3;
-  --accent-soft: #ddf3fc;
-  --danger: #ef4444;
-  --warning: #f97316;
-  --success: #16a34a;
-  --border: #e2e8f0;
+  --surface-2: #F8FAFC;   /* panel secundario frío */
+  --text: #162333;        /* ink */
+  --muted: #64748B;
+  --primary: #162333;     /* comb / ink */
+  --accent: #009FE3;      /* azul Nethive */
+  --accent-deep: #0077AA; /* hover/active del accent */
+  --accent-soft: #E6F5FC;
+  --comb: #162333;        /* navy chrome (Portal) */
+  --comb-2: #1F2E41;      /* navy hover */
+  --comb-3: #283850;      /* navy superficie terciaria */
+  --danger: #D85B4A;
+  --warning: #D89A12;
+  --success: #2E9E6B;
+  --info: #3B7DD8;
+  --border: #DCE2E8;      /* line */
+
+  /* Tipografía Nethive Portal */
+  --font: "IBM Plex Sans", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Tintes suaves semánticos (badges, alerts, tarjetas de aviso) */
+  --info-soft: #eef4fc;
+  --info-text: #2c5da8;
+  --info-border: #c3d7f2;
+  --success-soft: #e7f5ee;
+  --success-text: #1b6b47;
+  --success-border: #b6e1cd;
+  --warning-soft: #fdf5e1;
+  --warning-text: #8a5e0f;
+  --warning-border: #f0d9a8;
+  --danger-soft: #fbeae8;
+  --danger-text: #a03a2c;
+  --danger-border: #f0c4bf;
+}
+
+:root[data-theme="dark"] {
+  --bg: var(--comb);
+  --surface: var(--comb-2);
+  --surface-2: var(--comb-3);
+  --text: #F1F5F9;
+  --muted: #94A3B8;
+  --border: #34455C;
+  --accent-soft: rgba(0, 159, 227, 0.16);
+
+  --info-soft: rgba(59, 125, 216, 0.16);
+  --info-text: #8FB8ED;
+  --info-border: rgba(59, 125, 216, 0.35);
+  --success-soft: rgba(46, 158, 107, 0.16);
+  --success-text: #6FCB9E;
+  --success-border: rgba(46, 158, 107, 0.35);
+  --warning-soft: rgba(216, 154, 18, 0.16);
+  --warning-text: #E8BB5C;
+  --warning-border: rgba(216, 154, 18, 0.35);
+  --danger-soft: rgba(216, 91, 74, 0.16);
+  --danger-text: #E8897A;
+  --danger-border: rgba(216, 91, 74, 0.35);
 }
 
 * {
@@ -44,13 +93,23 @@
 
 body {
   margin: 0;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: var(--font);
   background-color: var(--bg);
-  background-image:
-    radial-gradient(ellipse at 10% 30%, rgba(26,171,227,0.07) 0%, transparent 50%),
-    radial-gradient(ellipse at 90% 10%, rgba(12,120,168,0.05) 0%, transparent 45%),
-    radial-gradient(ellipse at 70% 90%, rgba(26,171,227,0.06) 0%, transparent 50%);
   color: var(--text);
+}
+
+h1, h2, h3,
+.hero-title,
+.stat-number {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Icono inline en encabezados de sección */
+.h-icon {
+  vertical-align: -0.18em;
+  margin-right: 0.45rem;
+  color: var(--accent);
 }
 
 .container {
@@ -61,14 +120,12 @@ body {
 
 /* ---- Topbar ---- */
 .topbar {
-  background: linear-gradient(90deg, rgba(12, 120, 168, 0.82) 0%, rgba(10, 106, 148, 0.82) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: linear-gradient(90deg, #0077aa 0%, #005f88 100%);
   color: white;
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 2px 16px rgba(26, 171, 227, 0.3);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
 }
 
 .topbar-content {
@@ -84,17 +141,8 @@ body {
 .brand-logo {
   display: inline-flex;
   align-items: center;
-  background: white;
-  border-radius: 6px;
-  padding: 3px 4px;
   text-decoration: none;
   flex-shrink: 0;
-}
-
-.brand-logo img {
-  height: 40px;
-  width: auto;
-  display: block;
 }
 
 
@@ -127,8 +175,37 @@ nav a::after {
   transition: transform 0.25s ease;
 }
 
-nav a:hover::after {
+nav a:not(.topbar-icon-btn):hover::after {
   transform: scaleX(1);
+}
+
+.topbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.topbar-icon-btn svg {
+  width: 19px;
+  height: 19px;
+  display: block;
+}
+
+.topbar-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.topbar-icon-btn:active {
+  transform: scale(0.92);
 }
 
 .inline-form {
@@ -146,13 +223,15 @@ nav a:hover::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   border: none;
   border-radius: 999px;
-  padding: 0.9rem 1.4rem;
+  padding: 0.7rem 1.35rem;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease,
+              color 0.15s ease, border-color 0.15s ease;
 }
 
 .button:active {
@@ -160,13 +239,13 @@ nav a:hover::after {
 }
 
 .button-primary {
-  background: linear-gradient(135deg, #0c78a8 0%, #0a6a94 100%);
-  color: white;
+  background: var(--accent);
+  color: #fff;
 }
 
 .button-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(26, 171, 227, 0.35);
+  background: var(--accent-deep);
+  box-shadow: 0 6px 16px rgba(0, 159, 227, 0.28);
 }
 
 .button-secondary {
@@ -184,18 +263,28 @@ nav a:hover::after {
 }
 
 .button-outline {
-  background: transparent;
+  background: var(--surface);
   color: var(--accent);
-  border: 2px solid var(--accent);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease,
-              color 0.2s ease, border-color 0.2s ease;
+  border: 1.5px solid var(--accent);
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .button-outline:hover {
   background: var(--accent);
   color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(26, 171, 227, 0.3);
+  box-shadow: 0 6px 16px rgba(0, 159, 227, 0.22);
+}
+
+/* Secundario neutro para acciones de apoyo sobre superficie clara */
+.button-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+
+.button-ghost:hover {
+  background: var(--bg);
+  border-color: var(--muted);
 }
 
 /* ---- Hero ---- */
@@ -230,10 +319,9 @@ nav a:hover::after {
 .hero-title {
   font-size: clamp(2.2rem, 3vw, 3.5rem);
   margin: 0 0 1rem;
-  background: linear-gradient(135deg, #1aabe3 0%, #1e40af 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 .hero-centered .hero-title {
@@ -305,18 +393,18 @@ nav a:hover::after {
 
 .feature-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 16px 40px rgba(26, 171, 227, 0.1);
+  box-shadow: 0 16px 40px rgba(0, 159, 227, 0.1);
 }
 
 .feature-icon {
   width: 2.75rem;
   height: 2.75rem;
-  background: linear-gradient(135deg, #0c78a8 0%, #0a6a94 100%);
+  background: var(--accent);
+  color: #fff;
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
   margin-bottom: 1.1rem;
 }
 
@@ -341,12 +429,54 @@ nav a:hover::after {
   border: 1px solid var(--border);
   border-radius: 1.5rem;
   padding: 2rem;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.07);
   animation: fadeIn 0.4s ease;
 }
 
 .table-section {
   overflow-x: auto;
+}
+
+.table-section-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.table-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.table-section-summary h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.table-section-summary h3::before {
+  content: "▸";
+  display: inline-block;
+  font-size: 0.75em;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+details.table-section[open] > .table-section-summary h3::before {
+  transform: rotate(90deg);
+}
+
+details.table-section[open] > .table-section-summary {
+  margin-bottom: 1.25rem;
+}
+
+/* Tinte de aviso para secciones que requieren atención (p.ej. solicitudes pendientes) */
+.table-section.table-section-warning {
+  background: linear-gradient(135deg, var(--warning-soft) 0%, var(--surface) 65%);
+  border-color: var(--warning-border);
 }
 
 /* ---- Forms ---- */
@@ -410,7 +540,7 @@ nav a:hover::after {
 
 .auth-form input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(26, 171, 227, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
 }
 
 .auth-form select {
@@ -427,21 +557,21 @@ nav a:hover::after {
 
 .auth-form select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(26, 171, 227, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
 }
 
 /* ---- Trip active card ---- */
 .trip-active-card {
-  border-left: 4px solid var(--warning);
-  background: linear-gradient(135deg, #fff7ed 0%, var(--surface) 60%);
-  border-radius: 0 0.75rem 0.75rem 0;
+  border: 1px solid var(--warning-border);
+  background: linear-gradient(135deg, var(--warning-soft) 0%, var(--surface) 70%);
+  border-radius: 0.75rem;
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.5rem;
   overflow: visible;
 }
 
 .trip-active-card h3 {
-  color: var(--warning);
+  color: var(--warning-text);
   margin: 0 0 0.75rem;
   font-size: 1rem;
 }
@@ -452,7 +582,8 @@ nav a:hover::after {
 }
 
 .dashboard-header p {
-  display: none;
+  margin: 0.35rem 0 0;
+  color: var(--muted);
 }
 
 .admin-cards {
@@ -465,7 +596,7 @@ nav a:hover::after {
 .admin-card {
   padding: 1.5rem;
   border-radius: 1.2rem;
-  background: #f8fafc;
+  background: var(--surface-2);
   border: 1px solid var(--border);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -477,15 +608,18 @@ nav a:hover::after {
 
 .admin-card h3 {
   margin: 0 0 0.5rem;
-  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--muted);
 }
 
 .admin-card p {
   margin: 0.25rem 0 0;
-  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
@@ -499,32 +633,27 @@ nav a:hover::after {
   margin-bottom: 0.25rem;
 }
 
-/* Card color variants */
-.admin-card-vehicles {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-color: #bfdbfe;
-}
-
+/* Card color variants — superficie blanca limpia, número en color de rol */
 .admin-card-vehicles .stat-number {
-  color: #1d4ed8;
-}
-
-.admin-card-employees {
-  background: linear-gradient(135deg, #e8f7fd 0%, #ddf3fc 100%);
-  border-color: #a8ddf4;
+  color: var(--accent);
 }
 
 .admin-card-employees .stat-number {
-  color: #0c78a8;
-}
-
-.admin-card-requests {
-  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-  border-color: #fed7aa;
+  color: var(--accent-deep);
 }
 
 .admin-card-requests .stat-number {
-  color: #c2410c;
+  color: #a0741a;
+}
+
+/* Icono de la stat card */
+.admin-card .stat-icon {
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+
+.admin-card-requests .stat-icon {
+  color: var(--warning);
 }
 
 /* ---- Tables ---- */
@@ -534,15 +663,17 @@ table {
 }
 
 thead {
-  background: #f8fafc;
+  background: var(--surface-2);
 }
 
 thead th {
   text-align: center;
   padding: 0.8rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   vertical-align: middle;
-  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
@@ -559,8 +690,12 @@ tbody tr {
   transition: background 0.15s ease;
 }
 
+tbody tr:nth-child(even) {
+  background: var(--surface-2);
+}
+
 tbody tr:hover {
-  background: rgba(26, 171, 227, 0.04);
+  background: rgba(0, 159, 227, 0.04);
 }
 
 /* ---- Vehicle & Company cards ---- */
@@ -574,7 +709,7 @@ tbody tr:hover {
   padding: 1.5rem;
   border: 1px solid var(--border);
   border-radius: 1.2rem;
-  background: #fff;
+  background: var(--surface);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
@@ -586,42 +721,46 @@ tbody tr:hover {
 
 /* ---- Alerts ---- */
 .alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1rem 1.2rem;
   border-radius: 1rem;
   margin-bottom: 1.5rem;
   font-weight: 600;
   animation: slideInDown 0.35s ease;
-  border-left: 4px solid;
+  border: 1px solid;
 }
 
 .alert-info {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-left-color: #3b82f6;
+  background: var(--info-soft);
+  color: var(--info-text);
+  border-color: var(--info-border);
 }
 
 .alert-success {
-  background: #ecfdf5;
-  color: #166534;
-  border-left-color: #22c55e;
+  background: var(--success-soft);
+  color: var(--success-text);
+  border-color: var(--success-border);
 }
 
 .alert-warning {
-  background: #ffedd5;
-  color: #c2410c;
-  border-left-color: #f97316;
+  background: var(--warning-soft);
+  color: var(--warning-text);
+  border-color: var(--warning-border);
 }
 
 .alert-danger,
 .alert-error {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-left-color: #ef4444;
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border-color: var(--danger-border);
 }
 
 /* ---- Footer ---- */
 .footer {
-  background: white;
+  background: var(--surface);
   border-top: 1px solid var(--border);
   padding: 1.5rem 0;
   text-align: center;
@@ -668,9 +807,11 @@ tbody tr:hover {
 /* ---- Table action cells ---- */
 .table-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   align-items: center;
+  justify-content: center;
 }
 
 /* ---- Inline form fields (conductor, destino, etc.) ---- */
@@ -704,7 +845,7 @@ tbody tr:hover {
 
 .input-inline:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(26, 171, 227, 0.12);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.12);
 }
 
 select.input-inline {
@@ -722,6 +863,154 @@ select.input-inline {
   font-size: 0.85rem;
 }
 
+/* ---- Dropdown (píldora + menú redondeado) ---- */
+.dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 0.55rem 0.7rem 0.55rem 1.1rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  cursor: pointer;
+  min-height: 42px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dropdown-trigger:hover {
+  border-color: var(--muted);
+}
+
+.dropdown-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
+}
+
+.dropdown-placeholder {
+  color: var(--muted);
+}
+
+.dropdown-caret {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.dropdown-trigger-badge {
+  min-height: 0;
+  padding: 0.3rem 0.55rem 0.3rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.dropdown-menu {
+  z-index: 1200;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  max-height: 280px;
+  overflow-y: auto;
+  animation: fadeIn 0.12s ease;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.dropdown-item:hover {
+  background: var(--surface-2);
+}
+
+.dropdown-item.is-selected {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.dropdown-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ---- Botón de acción solo-icono (filas de tabla) ---- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.icon-btn:hover {
+  background: var(--surface-2);
+}
+
+.icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-btn-accent {
+  color: var(--accent);
+  border-color: rgba(0, 159, 227, 0.4);
+}
+.icon-btn-accent:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.icon-btn-warning {
+  color: var(--warning);
+  border-color: rgba(216, 154, 18, 0.4);
+}
+.icon-btn-warning:hover {
+  background: var(--warning-soft);
+  border-color: var(--warning);
+}
+
+.icon-btn-danger {
+  color: var(--danger);
+  border-color: rgba(216, 91, 74, 0.4);
+}
+.icon-btn-danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
 .button-success {
   background: var(--success);
   color: white;
@@ -735,27 +1024,25 @@ select.input-inline {
 .button-warning {
   background: transparent;
   color: var(--warning);
-  border: 2px solid var(--warning);
+  border: 1.5px solid var(--warning);
 }
 
 .button-warning:hover {
   background: var(--warning);
   color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(249, 115, 22, 0.3);
+  box-shadow: 0 6px 14px rgba(216, 154, 18, 0.25);
 }
 
 .button-danger {
   background: transparent;
   color: var(--danger);
-  border: 2px solid var(--danger);
+  border: 1.5px solid var(--danger);
 }
 
 .button-danger:hover {
   background: var(--danger);
   color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.3);
+  box-shadow: 0 6px 14px rgba(216, 91, 74, 0.25);
 }
 
 /* ---- Confirm modal ---- */
@@ -816,7 +1103,7 @@ select.input-inline {
 
 .modal-box textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(26, 171, 227, 0.12);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.12);
 }
 
 .modal-checkbox {
@@ -919,7 +1206,7 @@ table button {
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 700;
-  background: #e2e8f0;
+  background: var(--border);
   color: var(--text);
   transition: transform 0.15s;
 }
@@ -929,8 +1216,8 @@ table button {
 }
 
 .badge-success {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-soft);
+  color: var(--success-text);
 }
 
 .button-outline.is-active {
@@ -939,14 +1226,14 @@ table button {
 }
 
 .badge-warning {
-  background: #fef3c7;
-  color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning-text);
   animation: pulse-badge 2s ease-in-out infinite;
 }
 
 .badge-danger {
-  background: #fee2e2;
-  color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger-text);
 }
 
 /* ---- Drawer ---- */
@@ -1090,7 +1377,7 @@ dialog.drawer::backdrop {
 .field input:focus,
 .field select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(26, 171, 227, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
 }
 
 /* ── Modal Button Styles ─────────────────────────────────────────────────── */
@@ -1125,13 +1412,13 @@ dialog.drawer::backdrop {
 }
 
 .modal-button-danger {
-  background: #fee;
-  border: 1px solid #fcc;
-  color: #c33;
+  background: #fbeae8;
+  border: 1px solid #f0c4bf;
+  color: var(--danger);
 }
 
 .modal-button-danger:hover {
-  background: #fef2f2;
+  background: #f6d6d1;
 }
 
 .modal-button:disabled {
@@ -1174,7 +1461,7 @@ dialog.drawer::backdrop {
 }
 
 .survey-table tbody tr:hover {
-  background: rgba(26, 171, 227, 0.04);
+  background: var(--surface-2);
 }
 
 .survey-table .actions-cell {

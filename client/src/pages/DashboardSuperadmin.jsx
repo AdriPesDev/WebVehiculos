@@ -7,6 +7,8 @@ import Alert from '../components/Alert';
 import Badge from '../components/Badge';
 import Drawer from '../components/Drawer';
 import SurveyBuilderModal from '../components/SurveyBuilderModal';
+import Icon from '../components/icons';
+import CollapsibleSection from '../components/CollapsibleSection';
 
 export default function DashboardSuperadmin({ data: initialData }) {
   const [data, setData] = useState(initialData);
@@ -144,41 +146,40 @@ export default function DashboardSuperadmin({ data: initialData }) {
 
         <div className="dashboard-actions">
           <button className="button button-outline" onClick={() => { setDrawerTab('vehicle'); setDrawerOpen(true); }}>
-            🚗➕ Añadir vehículo
+            <Icon name="van" size={18} /> Añadir vehículo
           </button>
           <button className="button button-outline" onClick={() => { setDrawerTab('employee'); setDrawerOpen(true); }}>
-            👷➕ Añadir empleado
+            <Icon name="user" size={18} /> Añadir empleado
           </button>
           <button className="button button-outline" onClick={() => setSurveyModalOpen(true)}>
-            📋➕ Añadir encuesta
+            <Icon name="clipboard" size={18} /> Añadir encuesta
           </button>
         </div>
 
         <div className="admin-cards">
           <div className="admin-card admin-card-vehicles">
-            <h3>🏢 Empresas</h3>
+            <h3><Icon name="building" size={16} className="h-icon" /> Empresas</h3>
             <span className="stat-number">{companies.length}</span>
             <p>registradas</p>
           </div>
           <div className="admin-card admin-card-employees">
-            <h3>👥 Usuarios</h3>
+            <h3><Icon name="users" size={16} className="h-icon" /> Usuarios</h3>
             <span className="stat-number">{users.length}</span>
             <p>en el sistema</p>
           </div>
           <div className="admin-card admin-card-requests">
-            <h3>🚗 Vehículos</h3>
+            <h3><Icon name="van" size={16} className="h-icon" /> Vehículos</h3>
             <span className="stat-number">{vehicles.length}</span>
             <p>en flota global</p>
           </div>
           <div className="admin-card">
-            <h3>🔧 En mantenimiento</h3>
+            <h3><Icon name="wrench" size={16} className="h-icon" /> En mantenimiento</h3>
             <span className="stat-number">{inMaintenance}</span>
             <p>vehículos</p>
           </div>
         </div>
 
-        <div className="table-section">
-          <h3>Empresas registradas</h3>
+        <CollapsibleSection title="Empresas registradas">
           <table>
             <thead>
               <tr>
@@ -194,20 +195,21 @@ export default function DashboardSuperadmin({ data: initialData }) {
                   <td>{users.filter(u => u.company_id === c.id && u.role === 'empleado').length}</td>
                   <td>
                     <button
-                      className="button button-small button-danger"
+                      className="icon-btn icon-btn-danger"
+                      title="Eliminar empresa"
+                      aria-label="Eliminar empresa"
                       onClick={() => setDeleteModal({ companyId: c.id, companyName: c.name, confirmed: false })}
                     >
-                      Eliminar
+                      <Icon name="trash" />
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
 
-        <div className="table-section">
-          <h3>Trabajadores del sistema</h3>
+        <CollapsibleSection title="Trabajadores del sistema">
           <table>
             <thead>
               <tr>
@@ -235,10 +237,12 @@ export default function DashboardSuperadmin({ data: initialData }) {
                     <td><span className="badge">{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</span></td>
                     <td>
                       <button
-                        className="button button-small button-danger"
+                        className="icon-btn icon-btn-danger"
+                        title="Quitar del sistema"
+                        aria-label="Quitar del sistema"
                         onClick={() => setRemoveWorkerModal({ userId: u.id, userName: u.name })}
                       >
-                        Quitar
+                        <Icon name="trash" />
                       </button>
                     </td>
                   </tr>
@@ -246,10 +250,9 @@ export default function DashboardSuperadmin({ data: initialData }) {
               })}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
 
-        <div className="table-section">
-          <h3>Vehículos del sistema</h3>
+        <CollapsibleSection title="Vehículos del sistema">
           <table>
             <thead>
               <tr>
@@ -274,18 +277,20 @@ export default function DashboardSuperadmin({ data: initialData }) {
                     <td>{company?.name || '—'}</td>
                     <td><Badge states={states} /></td>
                     <td className="table-actions">
-                      <Link to={`/vehicle/${v.id}`} className="button button-small button-outline">Detalles</Link>
+                      <Link to={`/vehicle/${v.id}`} className="icon-btn icon-btn-accent" title="Ver detalles" aria-label="Ver detalles">
+                        <Icon name="eye" />
+                      </Link>
                       {inMaint ? (
-                        <button className="button button-small button-warning" disabled={maintLoading} onClick={() => handleEndMaintenance(v.id, v.model)}>
-                          Acabar mant.
+                        <button className="icon-btn icon-btn-warning" title="Finalizar mantenimiento" aria-label="Finalizar mantenimiento" disabled={maintLoading} onClick={() => handleEndMaintenance(v.id, v.model)}>
+                          <Icon name="check" />
                         </button>
                       ) : (
-                        <button className="button button-small button-warning" disabled={maintLoading} onClick={() => setMaintModal({ vehicleId: v.id, vehicleName: v.model, reason: '' })}>
-                          Mantenimiento
+                        <button className="icon-btn icon-btn-warning" title="Poner en mantenimiento" aria-label="Poner en mantenimiento" disabled={maintLoading} onClick={() => setMaintModal({ vehicleId: v.id, vehicleName: v.model, reason: '' })}>
+                          <Icon name="wrench" />
                         </button>
                       )}
-                      <button className="button button-small button-danger" onClick={() => setDeleteVehicleModal({ vehicleId: v.id, vehicleName: v.model })}>
-                        Eliminar
+                      <button className="icon-btn icon-btn-danger" title="Eliminar vehículo" aria-label="Eliminar vehículo" onClick={() => setDeleteVehicleModal({ vehicleId: v.id, vehicleName: v.model })}>
+                        <Icon name="trash" />
                       </button>
                     </td>
                   </tr>
@@ -293,10 +298,9 @@ export default function DashboardSuperadmin({ data: initialData }) {
               })}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
 
-        <div className="table-section">
-          <h3>Encuestas del sistema</h3>
+        <CollapsibleSection title="Encuestas del sistema">
           <table>
             <thead>
               <tr>
@@ -318,10 +322,12 @@ export default function DashboardSuperadmin({ data: initialData }) {
                     <td><span className={`badge ${s.active ? 'badge-success' : 'badge-warning'}`}>{s.active ? 'Activa' : 'Inactiva'}</span></td>
                     <td>
                       <button
-                        className="button button-small button-danger"
+                        className="icon-btn icon-btn-danger"
+                        title="Eliminar encuesta"
+                        aria-label="Eliminar encuesta"
                         onClick={() => setDeleteSurveyModal({ surveyId: s.id, surveyName: s.vehicleName })}
                       >
-                        Eliminar
+                        <Icon name="trash" />
                       </button>
                     </td>
                   </tr>
@@ -329,7 +335,7 @@ export default function DashboardSuperadmin({ data: initialData }) {
               })}
             </tbody>
           </table>
-        </div>
+        </CollapsibleSection>
       </section>
 
       {endMaintModal && (
@@ -340,7 +346,7 @@ export default function DashboardSuperadmin({ data: initialData }) {
             <p>Vehículo: <strong>{endMaintModal.vehicleName}</strong></p>
             <div className="field">
               <label htmlFor="invoice-file-sa" className="button button-outline file-btn">
-                📎 {invoiceFile ? invoiceFile.name : 'Adjuntar factura (opcional)'}
+                <Icon name="paperclip" size={16} /> {invoiceFile ? invoiceFile.name : 'Adjuntar factura (opcional)'}
               </label>
               <input
                 id="invoice-file-sa"

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Icon from "../components/icons";
+import BrandLogo from "../components/BrandLogo";
 
 const BASE_URL =
   import.meta.env.VITE_API_URL || "http://192.168.69.163:3456/api";
@@ -44,8 +46,8 @@ const s = {
     userSelect: "none",
   },
   header: {
-    background: "var(--surface)",
-    borderBottom: "1px solid var(--border)",
+    background: "linear-gradient(90deg, #0077aa 0%, #005f88 100%)",
+    color: "#fff",
     padding: "1rem 1.5rem",
     display: "flex",
     justifyContent: "space-between",
@@ -77,9 +79,13 @@ const s = {
     gap: "0.35rem",
     minHeight: 100,
   }),
-  cardTitle: { fontWeight: 700, fontSize: "1.05rem" },
+  cardTitle: { fontWeight: 700, fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "0.4rem" },
   cardSub: { fontSize: "0.85rem", opacity: 0.75 },
   btn: (color) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
     background: color || "var(--accent)",
     color: "#fff",
     border: "none",
@@ -92,6 +98,10 @@ const s = {
     minWidth: 160,
   }),
   btnOutline: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
     background: "transparent",
     border: "2px solid var(--border)",
     borderRadius: "0.75rem",
@@ -101,6 +111,19 @@ const s = {
     cursor: "pointer",
     minHeight: 56,
     minWidth: 160,
+  },
+  headerBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.4rem",
+    background: "rgba(255,255,255,0.14)",
+    border: "1.5px solid rgba(255,255,255,0.55)",
+    color: "#fff",
+    borderRadius: "999px",
+    padding: "0.5rem 1rem",
+    fontSize: "0.95rem",
+    fontWeight: 600,
+    cursor: "pointer",
   },
   section: {
     background: "var(--surface)",
@@ -124,17 +147,23 @@ const s = {
     marginTop: "1rem",
   },
   badge: (color) => ({
-    display: "inline-block",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.25rem",
     background: color,
     color: "#fff",
     borderRadius: "999px",
-    padding: "0.2rem 0.6rem",
+    padding: "0.25rem 0.6rem",
+    minWidth: "1.5rem",
+    minHeight: "1.5rem",
     fontSize: "0.75rem",
     fontWeight: 600,
+    flexShrink: 0,
   }),
   flash: (type) => ({
-    background: type === "success" ? "#d1fae5" : "#fee2e2",
-    color: type === "success" ? "#065f46" : "#991b1b",
+    background: type === "success" ? "#e7f5ee" : "#fbeae8",
+    color: type === "success" ? "#1b6b47" : "#a03a2c",
     borderRadius: "0.75rem",
     padding: "1rem 1.25rem",
     fontWeight: 600,
@@ -174,7 +203,7 @@ const PASO = {
 };
 
 const TITULO_PASO = {
-  [PASO.HOME]: "🚗 Gestión de vehículos",
+  [PASO.HOME]: "Gestión de vehículos",
   [PASO.SALIDA_VEHICULO]: "Paso 1 · Selecciona vehículo",
   [PASO.SALIDA_CONDUCTOR]: "Paso 2 · Selecciona conductor",
   [PASO.SALIDA_PASAJEROS]: "Paso 3 · Añadir pasajeros",
@@ -261,7 +290,7 @@ export default function Kiosko() {
       if (res.id_uso || !res.error) {
         setFlash({
           type: "success",
-          msg: `✅ Salida registrada. ¡Buen viaje, ${conductorSel.nombre}!`,
+          msg: `Salida registrada. ¡Buen viaje, ${conductorSel.nombre}!`,
         });
         await cargar();
         resetFlujo();
@@ -345,7 +374,7 @@ export default function Kiosko() {
 
         setFlash({
           type: "success",
-          msg: `✅ Llegada registrada. Bienvenido/a, ${nombreConductor}.`,
+          msg: `Llegada registrada. Bienvenido/a, ${nombreConductor}.`,
         });
         await cargar();
         resetFlujo();
@@ -408,7 +437,7 @@ export default function Kiosko() {
         style={{ ...s.root, justifyContent: "center", alignItems: "center" }}
       >
         <div style={{ textAlign: "center", padding: "2rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔒</div>
+          <div style={{ marginBottom: "1rem", color: "var(--muted)" }}><Icon name="lock" size={48} /></div>
           <h2>Acceso restringido</h2>
           <p style={{ color: "var(--muted)" }}>
             Esta pantalla solo está disponible para administradores.
@@ -439,21 +468,25 @@ export default function Kiosko() {
       <div style={s.header}>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           {paso !== PASO.HOME && (
-            <button style={s.btnOutline} onClick={resetFlujo}>
-              ← Cancelar
+            <button style={s.headerBtn} onClick={resetFlujo}>
+              <Icon name="arrowLeft" size={18} /> Cancelar
             </button>
           )}
-          <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700 }}>
-            {TITULO_PASO[paso]}
-          </h1>
+          {paso === PASO.HOME ? (
+            <BrandLogo variant="light" height={30} />
+          ) : (
+            <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: "#fff" }}>
+              {TITULO_PASO[paso]}
+            </h1>
+          )}
         </div>
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+          <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.85)" }}>
             {disponibles.length} disponibles · {activos.length} en uso
           </span>
           <button
             style={{
-              ...s.btnOutline,
+              ...s.headerBtn,
               minWidth: "auto",
               padding: "0.5rem 1rem",
               fontSize: "0.9rem",
@@ -479,7 +512,7 @@ export default function Kiosko() {
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <button
                 style={{
-                  ...s.btn("#0ea5e9"),
+                  ...s.btn("var(--accent)"),
                   flex: 1,
                   minWidth: 200,
                   fontSize: "1.2rem",
@@ -488,11 +521,11 @@ export default function Kiosko() {
                 onClick={() => setPaso(PASO.SALIDA_VEHICULO)}
                 disabled={disponibles.length === 0}
               >
-                🚗 Registrar salida
+                <Icon name="van" size={24} /> Registrar salida
               </button>
               <button
                 style={{
-                  ...s.btn("#10b981"),
+                  ...s.btn("var(--success)"),
                   flex: 1,
                   minWidth: 200,
                   fontSize: "1.2rem",
@@ -501,13 +534,13 @@ export default function Kiosko() {
                 onClick={() => setPaso(PASO.LLEGADA_VIAJE)}
                 disabled={activos.length === 0}
               >
-                🏁 Registrar llegada
+                <Icon name="flag" size={24} /> Registrar llegada
               </button>
             </div>
 
             <div style={s.section}>
               <div style={s.sectionTitle}>
-                <span style={s.badge("#0ea5e9")}>✓</span>
+                <span style={s.badge("var(--accent)")}><Icon name="check" size={14} /></span>
                 Vehículos disponibles ({disponibles.length})
               </div>
               {disponibles.length === 0 ? (
@@ -528,10 +561,11 @@ export default function Kiosko() {
                       style={{
                         ...s.card(false),
                         cursor: "default",
-                        borderColor: "#0ea5e9",
+                        borderColor: "var(--accent)",
                       }}
                     >
                       <span style={s.cardTitle}>
+                        <Icon name="van" size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
                         {[v.marca, v.modelo].filter(Boolean).join(" ") ||
                           v.matricula}
                       </span>
@@ -548,19 +582,20 @@ export default function Kiosko() {
 
             <div style={s.section}>
               <div style={s.sectionTitle}>
-                <span style={s.badge("#f59e0b")}>⏳</span>
+                <span style={s.badge("var(--warning)")}><Icon name="clock" size={14} /></span>
                 Viajes en curso ({activos.length})
               </div>
               {activos.length === 0 ? (
-                <p
+                <div
                   style={{
-                    color: "var(--muted)",
                     textAlign: "center",
-                    padding: "1rem",
+                    padding: "2.5rem 1rem",
+                    color: "var(--muted)",
                   }}
                 >
-                  No hay viajes activos.
-                </p>
+                  <Icon name="route" size={32} style={{ opacity: 0.5, marginBottom: "0.5rem" }} />
+                  <p style={{ margin: 0 }}>No hay viajes activos.</p>
+                </div>
               ) : (
                 <div style={s.grid}>
                   {activos.map((u) => (
@@ -569,17 +604,18 @@ export default function Kiosko() {
                       style={{
                         ...s.card(false),
                         cursor: "default",
-                        borderColor: "#f59e0b",
+                        borderColor: "var(--warning)",
                       }}
                     >
                       <span style={s.cardTitle}>
+                        <Icon name="van" size={16} style={{ color: "var(--warning)", flexShrink: 0 }} />
                         {[u.marca, u.modelo].filter(Boolean).join(" ") ||
                           u.matricula}
                       </span>
                       <span style={s.cardSub}>{u.matricula}</span>
-                      <span style={s.cardSub}>🧑‍✈️ {u.nombre_conductor}</span>
+                      <span style={s.cardSub}><Icon name="user" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />{u.nombre_conductor}</span>
                       <span style={s.cardSub}>
-                        🕐{" "}
+                        <Icon name="clock" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />{" "}
                         {new Date(u.fecha_salida).toLocaleTimeString("es-ES", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -587,7 +623,7 @@ export default function Kiosko() {
                       </span>
                       {u.pasajeros?.length > 0 && (
                         <span style={s.cardSub}>
-                          👥 {u.pasajeros.map((p) => p.nombre).join(", ")}
+                          <Icon name="users" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />{u.pasajeros.map((p) => p.nombre).join(", ")}
                         </span>
                       )}
                     </div>
@@ -608,7 +644,7 @@ export default function Kiosko() {
                   key={v.id_vehiculo}
                   style={s.card(
                     vehiculoSel?.id_vehiculo === v.id_vehiculo,
-                    "#0ea5e9",
+                    "var(--accent)",
                   )}
                   onClick={() => setVehiculoSel(v)}
                 >
@@ -630,7 +666,7 @@ export default function Kiosko() {
                 disabled={!vehiculoSel}
                 onClick={() => setPaso(PASO.SALIDA_CONDUCTOR)}
               >
-                Siguiente →
+                Siguiente <Icon name="arrowRight" size={18} />
               </button>
             </div>
           </div>
@@ -641,7 +677,7 @@ export default function Kiosko() {
           <div style={s.section}>
             <div style={s.sectionTitle}>
               Selecciona el conductor
-              <span style={{ ...s.badge("#0ea5e9"), marginLeft: "auto" }}>
+              <span style={{ ...s.badge("var(--accent)"), marginLeft: "auto" }}>
                 {vehiculoSel?.matricula}
               </span>
             </div>
@@ -664,14 +700,14 @@ export default function Kiosko() {
                 style={s.btnOutline}
                 onClick={() => setPaso(PASO.SALIDA_VEHICULO)}
               >
-                ← Atrás
+                <Icon name="arrowLeft" size={18} /> Atrás
               </button>
               <button
                 style={s.btn()}
                 disabled={!conductorSel}
                 onClick={() => setPaso(PASO.SALIDA_PASAJEROS)}
               >
-                Siguiente →
+                Siguiente <Icon name="arrowRight" size={18} />
               </button>
             </div>
           </div>
@@ -682,7 +718,7 @@ export default function Kiosko() {
           <div style={s.section}>
             <div style={s.sectionTitle}>
               Añadir pasajeros (opcional)
-              <span style={{ ...s.badge("#0ea5e9"), marginLeft: "auto" }}>
+              <span style={{ ...s.badge("var(--accent)"), marginLeft: "auto" }}>
                 {vehiculoSel?.matricula} · {conductorSel?.nombre}
               </span>
             </div>
@@ -698,14 +734,14 @@ export default function Kiosko() {
                     key={u.id_usuario}
                     style={s.card(
                       pasajerosSel.some((p) => p.id_usuario === u.id_usuario),
-                      "#8b5cf6",
+                      "var(--accent)",
                     )}
                     onClick={() => togglePasajero(u)}
                   >
                     <span style={s.cardTitle}>{u.nombre}</span>
                     <span style={s.cardSub}>
                       {pasajerosSel.some((p) => p.id_usuario === u.id_usuario)
-                        ? "✓ Seleccionado"
+                        ? <><Icon name="check" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />Seleccionado</>
                         : "Pulsar para añadir"}
                     </span>
                   </div>
@@ -721,7 +757,7 @@ export default function Kiosko() {
                 style={s.btnOutline}
                 onClick={() => setPaso(PASO.SALIDA_CONDUCTOR)}
               >
-                ← Atrás
+                <Icon name="arrowLeft" size={18} /> Atrás
               </button>
               <button
                 style={s.btn()}
@@ -749,23 +785,23 @@ export default function Kiosko() {
               }}
             >
               <div>
-                🚗 <strong>Vehículo:</strong>{" "}
+                <Icon name="van" size={18} style={{ verticalAlign: "-3px", marginRight: "0.4rem", color: "var(--accent)" }} /><strong>Vehículo:</strong>{" "}
                 {[vehiculoSel?.marca, vehiculoSel?.modelo]
                   .filter(Boolean)
                   .join(" ") || vehiculoSel?.matricula}{" "}
                 ({vehiculoSel?.matricula})
               </div>
               <div>
-                🧑‍✈️ <strong>Conductor:</strong> {conductorSel?.nombre}
+                <Icon name="user" size={18} style={{ verticalAlign: "-3px", marginRight: "0.4rem", color: "var(--accent)" }} /><strong>Conductor:</strong> {conductorSel?.nombre}
               </div>
               <div>
-                👥 <strong>Pasajeros:</strong>{" "}
+                <Icon name="users" size={18} style={{ verticalAlign: "-3px", marginRight: "0.4rem", color: "var(--accent)" }} /><strong>Pasajeros:</strong>{" "}
                 {pasajerosSel.length > 0
                   ? pasajerosSel.map((p) => p.nombre).join(", ")
                   : "Ninguno"}
               </div>
               <div>
-                🕐 <strong>Hora:</strong>{" "}
+                <Icon name="clock" size={18} style={{ verticalAlign: "-3px", marginRight: "0.4rem", color: "var(--accent)" }} /><strong>Hora:</strong>{" "}
                 {new Date().toLocaleTimeString("es-ES", {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -777,11 +813,11 @@ export default function Kiosko() {
                 style={s.btnOutline}
                 onClick={() => setPaso(PASO.SALIDA_PASAJEROS)}
               >
-                ← Atrás
+                <Icon name="arrowLeft" size={18} /> Atrás
               </button>
               <button
                 style={{
-                  ...s.btn("#10b981"),
+                  ...s.btn("var(--success)"),
                   fontSize: "1.2rem",
                   minHeight: 64,
                   minWidth: 220,
@@ -789,7 +825,7 @@ export default function Kiosko() {
                 disabled={operando}
                 onClick={confirmarSalida}
               >
-                {operando ? "Registrando..." : "✅ Confirmar salida"}
+                {operando ? "Registrando..." : <><Icon name="check" size={20} /> Confirmar salida</>}
               </button>
             </div>
           </div>
@@ -817,7 +853,7 @@ export default function Kiosko() {
                     style={{
                       ...s.card(
                         viajeSelLlegada?.id_uso === u.id_uso,
-                        "#10b981",
+                        "var(--success)",
                       ),
                       cursor: "pointer",
                     }}
@@ -828,9 +864,9 @@ export default function Kiosko() {
                         u.matricula}
                     </span>
                     <span style={s.cardSub}>{u.matricula}</span>
-                    <span style={s.cardSub}>🧑‍✈️ {u.nombre_conductor}</span>
+                    <span style={s.cardSub}><Icon name="user" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />{u.nombre_conductor}</span>
                     <span style={s.cardSub}>
-                      🕐{" "}
+                      <Icon name="clock" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />{" "}
                       {new Date(u.fecha_salida).toLocaleTimeString("es-ES", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -838,7 +874,7 @@ export default function Kiosko() {
                     </span>
                     {u.pasajeros?.length > 0 && (
                       <span style={s.cardSub}>
-                        👥 {u.pasajeros.map((p) => p.nombre).join(", ")}
+                        <Icon name="users" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />{u.pasajeros.map((p) => p.nombre).join(", ")}
                       </span>
                     )}
                   </div>
@@ -847,7 +883,7 @@ export default function Kiosko() {
             )}
             <div style={s.actions}>
               <button style={s.btnOutline} onClick={() => setPaso(PASO.HOME)}>
-                ← Volver
+                <Icon name="arrowLeft" size={18} /> Volver
               </button>
             </div>
           </div>
@@ -858,7 +894,7 @@ export default function Kiosko() {
           <div style={s.section}>
             <div style={s.sectionTitle}>
               ¿Quién conduce de vuelta?
-              <span style={{ ...s.badge("#10b981"), marginLeft: "auto" }}>
+              <span style={{ ...s.badge("var(--success)"), marginLeft: "auto" }}>
                 {viajeSelLlegada.matricula}
               </span>
             </div>
@@ -870,13 +906,13 @@ export default function Kiosko() {
             <div style={s.grid}>
               {/* Opción "el mismo de ida" */}
               <div
-                style={s.card(conductorVuelta === null, "#10b981")}
+                style={s.card(conductorVuelta === null, "var(--success)")}
                 onClick={() => setConductorVuelta(null)}
               >
                 <span style={s.cardTitle}>
                   {viajeSelLlegada.nombre_conductor}
                 </span>
-                <span style={s.cardSub}>✓ El mismo de ida</span>
+                <span style={s.cardSub}><Icon name="check" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem", color: "var(--success)" }} />El mismo de ida</span>
               </div>
               {/* Resto de usuarios */}
               {usuarios
@@ -886,7 +922,7 @@ export default function Kiosko() {
                     key={u.id_usuario}
                     style={s.card(
                       conductorVuelta?.id_usuario === u.id_usuario,
-                      "#10b981",
+                      "var(--success)",
                     )}
                     onClick={() => setConductorVuelta(u)}
                   >
@@ -902,14 +938,14 @@ export default function Kiosko() {
                 style={s.btnOutline}
                 onClick={() => setPaso(PASO.LLEGADA_VIAJE)}
               >
-                ← Atrás
+                <Icon name="arrowLeft" size={18} /> Atrás
               </button>
               <button
-                style={s.btn("#10b981")}
+                style={s.btn("var(--success)")}
                 disabled={cargandoEncuesta}
                 onClick={avanzarAEncuesta}
               >
-                {cargandoEncuesta ? "Cargando encuesta..." : "Siguiente →"}
+                {cargandoEncuesta ? "Cargando encuesta..." : <>Siguiente <Icon name="arrowRight" size={18} /></>}
               </button>
             </div>
           </div>
@@ -920,7 +956,7 @@ export default function Kiosko() {
           <div style={s.section}>
             <div style={s.sectionTitle}>
               Encuesta del vehículo
-              <span style={{ ...s.badge("#10b981"), marginLeft: "auto" }}>
+              <span style={{ ...s.badge("var(--success)"), marginLeft: "auto" }}>
                 {viajeSelLlegada?.matricula}
               </span>
             </div>
@@ -933,7 +969,7 @@ export default function Kiosko() {
             >
               Completa las preguntas antes de registrar la llegada.
               {preguntasEncuesta.some((p) => p.obligatoria) && (
-                <span style={{ color: "#ef4444" }}>
+                <span style={{ color: "var(--danger)" }}>
                   {" "}
                   Las marcadas con * son obligatorias.
                 </span>
@@ -948,7 +984,7 @@ export default function Kiosko() {
                   <label style={{ fontWeight: 600, fontSize: "1rem" }}>
                     {p.texto}
                     {p.obligatoria && (
-                      <span style={{ color: "#ef4444" }}> *</span>
+                      <span style={{ color: "var(--danger)" }}> *</span>
                     )}
                   </label>
 
@@ -985,15 +1021,15 @@ export default function Kiosko() {
                   {p.tipo_respuesta === "booleano" && (
                     <div style={{ display: "flex", gap: "0.75rem" }}>
                       {[
-                        { val: "true", label: "✅ Sí" },
-                        { val: "false", label: "❌ No" },
-                      ].map(({ val, label }) => (
+                        { val: "true", label: "Sí", icon: "check" },
+                        { val: "false", label: "No", icon: "x" },
+                      ].map(({ val, label, icon }) => (
                         <div
                           key={val}
                           style={{
                             ...s.card(
                               respuestas[p.id_pregunta] === val,
-                              val === "true" ? "#10b981" : "#ef4444",
+                              val === "true" ? "var(--success)" : "var(--danger)",
                             ),
                             minHeight: "auto",
                             padding: "0.75rem 1.5rem",
@@ -1009,8 +1045,9 @@ export default function Kiosko() {
                           }
                         >
                           <span
-                            style={{ fontWeight: 700, fontSize: "1.05rem" }}
+                            style={{ fontWeight: 700, fontSize: "1.05rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
                           >
+                            <Icon name={icon} size={18} />
                             {label}
                           </span>
                         </div>
@@ -1026,7 +1063,7 @@ export default function Kiosko() {
                           style={{
                             ...s.card(
                               respuestas[p.id_pregunta] === String(o.id_opcion),
-                              "#8b5cf6",
+                              "var(--accent)",
                             ),
                             minHeight: "auto",
                             padding: "0.75rem 1rem",
@@ -1052,11 +1089,11 @@ export default function Kiosko() {
                 style={s.btnOutline}
                 onClick={() => setPaso(PASO.LLEGADA_CONDUCTOR)}
               >
-                ← Atrás
+                <Icon name="arrowLeft" size={18} /> Atrás
               </button>
               <button
                 style={{
-                  ...s.btn("#10b981"),
+                  ...s.btn("var(--success)"),
                   fontSize: "1.1rem",
                   minHeight: 60,
                   minWidth: 220,
@@ -1064,7 +1101,7 @@ export default function Kiosko() {
                 disabled={operando || !encuestaValida()}
                 onClick={confirmarLlegada}
               >
-                {operando ? "Registrando..." : "✅ Confirmar llegada"}
+                {operando ? "Registrando..." : <><Icon name="check" size={20} /> Confirmar llegada</>}
               </button>
             </div>
           </div>

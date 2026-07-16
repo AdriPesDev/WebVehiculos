@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
 import Alert from '../components/Alert';
+import Icon from '../components/icons';
+import CollapsibleSection from '../components/CollapsibleSection';
 
 function duration(start, end) {
   if (!start) return '—';
@@ -53,7 +55,12 @@ export default function VehicleDetail() {
   }
 
   useEffect(() => {
-    cargarDetalle();
+    let mounted = true;
+    (async () => {
+      if (!mounted) return;
+      await cargarDetalle();
+    })();
+    return () => { mounted = false; };
   }, [id]);
 
   if (error) return <Layout><p className="alert alert-error">{error}</p></Layout>;
@@ -63,6 +70,9 @@ export default function VehicleDetail() {
   const states      = vehicle.states || [];
   const isAvailable = states.includes('disponible') && !activeTrip;
   const rol         = user?.rol || user?.role;
+  const lastTrip     = vehicleTrips.length > 0
+    ? [...vehicleTrips].sort((a, b) => new Date(b.checkoutTime) - new Date(a.checkoutTime))[0]
+    : null;
 
   // ── Checkout ────────────────────────────────────────────────────────────────
   async function handleCheckout() {
@@ -167,16 +177,16 @@ export default function VehicleDetail() {
   return (
     <Layout>
       <section className="dashboard">
-        <div className="dashboard-header">
+        <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
           <div>
-            <h2>{vehicle.model || vehicle.plate}</h2>
+            <h2><Icon name="van" size={24} className="h-icon" />{vehicle.model || vehicle.plate}</h2>
             <p>
               Matrícula: <strong>{vehicle.plate}</strong>
               {vehicle.tipo && <> · {vehicle.tipo}</>}
               {company?.name && <> · {company.name}</>}
             </p>
           </div>
-          <Link to="/dashboard" className="button button-outline">← Volver al panel</Link>
+          <Link to="/dashboard" className="button button-outline"><Icon name="arrowLeft" size={16} /> Volver al panel</Link>
         </div>
 
         {readOnly && (
@@ -192,27 +202,35 @@ export default function VehicleDetail() {
         {/* ── Tarjetas de info ── */}
         <div className="admin-cards">
           <div className="admin-card">
-            <h3>Estado</h3>
+            <h3><Icon name="shield" size={16} className="h-icon" /> Estado</h3>
             <Badge states={states} />
           </div>
           {vehicle.tipo && (
             <div className="admin-card">
-              <h3>Tipo</h3>
+              <h3><Icon name="van" size={16} className="h-icon" /> Tipo</h3>
               <span className="stat-number" style={{ fontSize: '1.1rem' }}>{vehicle.tipo}</span>
             </div>
           )}
           <div className="admin-card admin-card-vehicles">
-            <h3>Plazas</h3>
+            <h3><Icon name="users" size={16} className="h-icon" /> Plazas</h3>
             <span className="stat-number">{vehicle.capacity !== '—' ? vehicle.capacity : '—'}</span>
           </div>
           <div className="admin-card admin-card-employees">
-            <h3>Ubicación</h3>
+            <h3><Icon name="globe" size={16} className="h-icon" /> Ubicación</h3>
             <span className="stat-number" style={{ fontSize: '1.1rem' }}>{vehicle.location}</span>
           </div>
           <div className="admin-card admin-card-requests">
-            <h3>Total viajes</h3>
+            <h3><Icon name="route" size={16} className="h-icon" /> Total viajes</h3>
             <span className="stat-number">{vehicleTrips.length}</span>
           </div>
+          {lastTrip && (
+            <div className="admin-card">
+              <h3><Icon name="clock" size={16} className="h-icon" /> Última salida</h3>
+              <span className="stat-number" style={{ fontSize: '1.1rem' }}>
+                {new Date(lastTrip.checkoutTime).toLocaleDateString('es-ES')}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ── Checkout (oculto en modo solo lectura) ── */}
@@ -250,7 +268,7 @@ export default function VehicleDetail() {
                   style={{ minWidth: 200 }}
                 />
               </div>
-              <button className="button button-outline" onClick={handleCheckout}>
+              <button className="button button-primary" onClick={handleCheckout}>
                 Registrar salida
               </button>
             </div>
@@ -261,7 +279,7 @@ export default function VehicleDetail() {
         {!readOnly && rol === 'admin' && !isAvailable && !activeTrip && (
           <div className="table-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <p style={{ margin: 0, color: 'var(--muted)' }}>El vehículo aparece como no disponible sin viaje activo registrado.</p>
-            <button className="button button-outline" onClick={() => setResetModal(true)}>
+            <button className="button button-ghost" onClick={() => setResetModal(true)}>
               Restablecer a disponible
             </button>
           </div>
@@ -297,11 +315,12 @@ export default function VehicleDetail() {
                     </span>
                     {!readOnly && canManageTrip && (
                       <button
-                        className="button button-small button-danger"
+                        className="icon-btn icon-btn-danger"
                         onClick={() => handleRemovePassenger(p.id || p.user_id)}
                         title="Eliminar pasajero"
+                        aria-label="Eliminar pasajero"
                       >
-                        ✕
+                        <Icon name="x" size={16} />
                       </button>
                     )}
                   </li>
@@ -354,7 +373,7 @@ export default function VehicleDetail() {
                 )}
 
                 <button type="submit" className="button button-small button-outline" disabled={addingPassenger}>
-                  + Añadir
+                  <Icon name="plus" size={16} /> Añadir
                 </button>
               </form>
             )}
@@ -371,8 +390,7 @@ export default function VehicleDetail() {
         )}
 
         {/* ── Historial de viajes ── */}
-        <div className="table-section">
-          <h3>Historial de viajes</h3>
+        <CollapsibleSection title="Historial de viajes" count={vehicleTrips.length}>
           {vehicleTrips.length === 0 ? (
             <p style={{ color: 'var(--muted)' }}>
               {rol === 'empleado' ? 'No tienes viajes registrados en este vehículo.' : 'Sin viajes registrados.'}
@@ -406,12 +424,11 @@ export default function VehicleDetail() {
               </tbody>
             </table>
           )}
-        </div>
+        </CollapsibleSection>
 
         {/* ── Historial de mantenimientos ── */}
         {maintenanceHistory.length > 0 && (
-          <div className="table-section">
-            <h3>Historial de mantenimientos</h3>
+          <CollapsibleSection title="Historial de mantenimientos" count={maintenanceHistory.length}>
             <table>
               <thead>
                 <tr>
@@ -429,7 +446,7 @@ export default function VehicleDetail() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </CollapsibleSection>
         )}
       </section>
 
