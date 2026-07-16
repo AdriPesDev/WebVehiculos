@@ -534,7 +534,7 @@ export default function Kiosko() {
                 onClick={() => setPaso(PASO.LLEGADA_VIAJE)}
                 disabled={activos.length === 0}
               >
-                <Icon name="flag" size={24} /> Registrar llegada
+                🏁 Registrar llegada
               </button>
             </div>
 
