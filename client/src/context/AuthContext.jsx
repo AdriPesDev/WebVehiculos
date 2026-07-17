@@ -48,12 +48,6 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
-  function hasRole(roles) {
-    if (!user) return false;
-    const allowed = Array.isArray(roles) ? roles : [roles];
-    return allowed.includes(user.rol || user.role);
-  }
-
   const value = useMemo(
     () => ({
       user,
@@ -61,7 +55,6 @@ export function AuthProvider({ children }) {
       loading,
       login,
       logout,
-      hasRole,
       isAuthenticated: !!user,
     }),
     [user, loading],

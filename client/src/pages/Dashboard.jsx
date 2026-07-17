@@ -3,8 +3,6 @@ import { api } from '../services/api';
 import Layout from '../components/Layout';
 import DashboardAdmin from './DashboardAdmin';
 import DashboardEmpleado from './DashboardEmpleado';
-import DashboardSuperadmin from './DashboardSuperadmin';
-import DashboardNoCompany from './DashboardNoCompany';
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
@@ -24,8 +22,6 @@ export default function Dashboard() {
 
   if (data.role === 'admin')      return <DashboardAdmin data={data} />;
   if (data.role === 'empleado')   return <DashboardEmpleado data={data} />;
-  if (data.role === 'superadmin') return <DashboardSuperadmin data={data} />;
-  if (data.role === 'sin_empresa') return <DashboardNoCompany />;
 
   return <Layout><p>Rol no reconocido.</p></Layout>;
 }

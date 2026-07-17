@@ -42,6 +42,9 @@ const put = (path, body) =>
   request(path, { method: "PUT", body: JSON.stringify(body) });
 const del = (path) => request(path, { method: "DELETE" });
 
+// ponytail: app interna mono-empresa, id_empresa fijo = 8 (Nethive)
+const EMPRESA = { id: 8, name: "Nethive" };
+
 export const api = {
   // ── Auth ──────────────────────────────────────────────────────────────────────
   login: (email, password) =>
@@ -62,9 +65,6 @@ export const api = {
     window.location.href = "/login";
   },
 
-  register: (nombre, email, password) =>
-    post("/auth/register", { nombre, email, password }),
-
   me: () =>
     get("/auth/me")
       .then((u) => (u ? { user: normalizeUsuario(u) } : { user: null }))
@@ -84,72 +84,28 @@ export const api = {
     const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
     if (!usuario) throw new Error("No autenticado");
 
-    if (["admin", "empleado"].includes(usuario.rol) && !usuario.id_empresa) {
-      try {
-        const refreshed = await post("/auth/refresh", {});
-        if (refreshed?.token) {
-          localStorage.setItem("token", refreshed.token);
-          localStorage.setItem("usuario", JSON.stringify(refreshed.usuario));
-          if (!refreshed.usuario?.id_empresa) return { role: "sin_empresa" };
-        }
-      } catch {
-        return { role: "sin_empresa" };
-      }
-    }
-
     const rol = usuario.rol;
 
     if (rol === "admin") {
-      const [empresas, vehiculos, usuarios, solicitudes, usos] =
-        await Promise.all([
-          get("/empresas"),
-          get("/vehiculos"),
-          get("/usuarios"),
-          get("/solicitudes"),
-          get("/usos/activos"),
-        ]);
-      const empresa = empresas[0] || {};
+      const [vehiculos, usuarios, usos] = await Promise.all([
+        get("/vehiculos"),
+        get("/usuarios"),
+        get("/usos/activos"),
+      ]);
       return {
         role: "admin",
-        company: normalizeEmpresa(empresa),
+        company: EMPRESA,
         companyVehicles: vehiculos.map(normalizeVehiculo),
         companyUsers: usuarios.map(normalizeUsuario),
-        pendingRequests: solicitudes
-          .filter((s) => s.estado === "pendiente")
-          .map(normalizeSolicitud),
         activeTrips: usos.map(normalizeUso),
       };
     }
 
-    if (rol === "superadmin") {
-      const [empresas, usuarios, vehiculos] = await Promise.all([
-        get("/superadmin/empresas"),
-        get("/superadmin/usuarios"),
-        get("/superadmin/vehiculos"),
-      ]);
-      return {
-        role: "superadmin",
-        companies: empresas.map(normalizeEmpresa),
-        users: usuarios.map(normalizeUsuario),
-        vehicles: vehiculos.map((v) => ({
-          ...normalizeVehiculo(v),
-          nombre_empresa: v.nombre_empresa,
-        })),
-      };
-    }
-
     if (rol === "empleado") {
-      const [empresas, vehiculos, usos] = await Promise.all([
-        get("/empresas/publico"),
+      const [vehiculos, usos] = await Promise.all([
         get("/vehiculos"),
         get("/usos"),
       ]);
-      const empresaPublica =
-        empresas.find((e) => e.id_empresa === usuario.id_empresa) || {};
-      const empresa = {
-        id_empresa: empresaPublica.id_empresa,
-        nombre: empresaPublica.nombre,
-      };
       const usosNorm = usos.map(normalizeUso);
       const myActiveTrip =
         usosNorm.find(
@@ -162,7 +118,7 @@ export const api = {
         : null;
       return {
         role: "empleado",
-        company: normalizeEmpresa(empresa),
+        company: EMPRESA,
         companyVehicles: vehiculos.map(normalizeVehiculo),
         userTrips: usosNorm,
         myActiveTrip,
@@ -170,31 +126,8 @@ export const api = {
       };
     }
 
-    return { role: "sin_empresa" };
+    throw new Error("Rol no reconocido");
   },
-
-  // ── Empresas ──────────────────────────────────────────────────────────────────
-  companyList: () => get("/empresas/publico"),
-  companyCreate: (nombre, cif, direccion) =>
-    post("/empresas", { nombre, cif, direccion }),
-  deleteCompany: (id) =>
-    del(`/empresas/${id}`)
-      .then(() => ({ ok: true }))
-      .catch((e) => ({ ok: false, error: e.message })),
-
-  // ── Solicitudes ───────────────────────────────────────────────────────────────
-  companyJoin: (id_empresa) => post("/solicitudes", { id_empresa }),
-  misSolicitudes: () => get("/solicitudes/mis-solicitudes"),
-
-  approveRequest: (id) =>
-    put(`/solicitudes/${id}`, { estado: "aprobada" })
-      .then((r) => ({ ok: true, ...r }))
-      .catch((e) => ({ ok: false, error: e.message })),
-
-  rejectRequest: (id) =>
-    put(`/solicitudes/${id}`, { estado: "rechazada" })
-      .then((r) => ({ ok: true, ...r }))
-      .catch((e) => ({ ok: false, error: e.message })),
 
   // ── Vehículos ─────────────────────────────────────────────────────────────────
   // Drawer envía { model, plate, tipo, capacity, location }
@@ -387,16 +320,6 @@ export const api = {
 
   getEncuestaViaje: (id_uso) => get(`/encuestas/preguntas?id_uso=${id_uso}`),
 
-  getSuperadminEncuestas: () =>
-    get("/superadmin/encuestas")
-      .then((preguntas) =>
-        preguntas.map((p) => ({
-          ...normalizePregunta(p),
-          nombre_empresa: p.nombre_empresa,
-        })),
-      )
-      .catch(() => []),
-
   updateSurvey: (id, datos) =>
     put(`/encuestas/preguntas/${id}`, datos)
       .then((r) => ({ ok: true, ...r }))
@@ -452,17 +375,6 @@ function normalizeUsuario(u) {
     rol: u.rol,
     active: u.activo,
     company_id: u.id_empresa,
-  };
-}
-
-function normalizeSolicitud(s) {
-  if (!s) return {};
-  return {
-    id: s.id_solicitud,
-    userName: s.nombre_usuario,
-    userEmail: s.email,
-    createdAt: s.fecha_solicitud,
-    estado: s.estado,
   };
 }
 

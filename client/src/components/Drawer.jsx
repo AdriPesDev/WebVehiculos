@@ -4,9 +4,8 @@ import { api } from '../services/api';
 import Alert from './Alert';
 import Icon from './icons';
 
-export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded, initialTab = 'vehicle', isSuperadmin = false, companies = [] }) {
+export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded, initialTab = 'vehicle' }) {
   // Vehicle form state
-  const [vCompanyId, setVCompanyId] = useState('');
   const [vModel, setVModel]         = useState('');
   const [vPlate, setVPlate]         = useState('');
   const [vTipo, setVTipo]           = useState('');
@@ -16,7 +15,6 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
   const [vLoading, setVLoading]     = useState(false);
 
   // Employee form state
-  const [eCompanyId, setECompanyId] = useState('');
   const [eName, setEName]           = useState('');
   const [eEmail, setEEmail]         = useState('');
   const [ePassword, setEPassword]   = useState('');
@@ -35,10 +33,6 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
   async function handleAddVehicle(e) {
     e.preventDefault();
     setVError(null);
-    if (isSuperadmin && !vCompanyId) {
-      setVError('Selecciona una empresa.');
-      return;
-    }
     setVLoading(true);
     const body = {
       model:    vModel,
@@ -47,12 +41,10 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
       capacity: vCapacity || null,
       location: vLocation || null,
     };
-    if (isSuperadmin) body.companyId = vCompanyId;
     const res = await api.addVehicle(body);
     setVLoading(false);
     if (res.ok) {
       resetVehicleForm();
-      setVCompanyId('');
       onVehicleAdded(res.vehicle);
       onClose();
     } else {
@@ -63,18 +55,12 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
   async function handleAddEmployee(e) {
     e.preventDefault();
     setEError(null);
-    if (isSuperadmin && !eCompanyId) {
-      setEError('Selecciona una empresa.');
-      return;
-    }
     setELoading(true);
     const body = { name: eName, email: eEmail, password: ePassword, role: eRole };
-    if (isSuperadmin) body.companyId = eCompanyId;
     const res = await api.addEmployee(body);
     setELoading(false);
     if (res.ok) {
       resetEmployeeForm();
-      setECompanyId('');
       onEmployeeAdded(res.user);
       onClose();
     } else {
@@ -118,18 +104,6 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
           {isVehicle ? (
             <form onSubmit={handleAddVehicle} className="auth-form">
               <Alert type="error" message={vError} onClose={() => setVError(null)} />
-
-              {isSuperadmin && (
-                <div className="field">
-                  <label htmlFor="v-company">Empresa</label>
-                  <select id="v-company" value={vCompanyId} onChange={e => setVCompanyId(e.target.value)} required>
-                    <option value="">-- Selecciona una empresa --</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div className="field">
                 <label htmlFor="v-plate">Matrícula *</label>
@@ -195,18 +169,6 @@ export default function Drawer({ open, onClose, onVehicleAdded, onEmployeeAdded,
           ) : (
             <form onSubmit={handleAddEmployee} className="auth-form">
               <Alert type="error" message={eError} onClose={() => setEError(null)} />
-
-              {isSuperadmin && (
-                <div className="field">
-                  <label htmlFor="e-company">Empresa</label>
-                  <select id="e-company" value={eCompanyId} onChange={e => setECompanyId(e.target.value)} required>
-                    <option value="">-- Selecciona una empresa --</option>
-                    {companies.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
 
               <div className="field">
                 <label htmlFor="e-name">Nombre completo</label>
@@ -283,6 +245,4 @@ Drawer.propTypes = {
   initialTab:      PropTypes.string,
   onVehicleAdded:  PropTypes.func.isRequired,
   onEmployeeAdded: PropTypes.func.isRequired,
-  isSuperadmin:    PropTypes.bool,
-  companies:       PropTypes.array,
 };

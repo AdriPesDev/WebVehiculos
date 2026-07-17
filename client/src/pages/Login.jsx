@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
@@ -137,9 +137,6 @@ export default function Login() {
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
-        <p style={{ marginTop: "1rem", textAlign: "center" }}>
-          ¿No tienes cuenta? <Link to="/register">Regístrate</Link>
-        </p>
       </div>
     </Layout>
   );

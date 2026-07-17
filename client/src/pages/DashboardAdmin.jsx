@@ -33,7 +33,6 @@ export default function DashboardAdmin({ data: initialData }) {
   const [expandedTrip, setExpandedTrip] = useState(null);
   const [tripEncuestas, setTripEncuestas] = useState({});
 
-  const [approveModal, setApproveModal] = useState(null);
   const [maintModal, setMaintModal] = useState(null);
   const [maintLoading, setMaintLoading] = useState(false);
   const [endMaintModal, setEndMaintModal] = useState(null);
@@ -45,7 +44,6 @@ export default function DashboardAdmin({ data: initialData }) {
     company,
     companyVehicles,
     companyUsers,
-    pendingRequests,
     activeTrips = [],
   } = data;
 
@@ -104,33 +102,6 @@ export default function DashboardAdmin({ data: initialData }) {
         message: err.message || "Error al cambiar el rol.",
       });
     }
-  }
-
-  async function confirmApprove(role) {
-    const { requestId, userName } = approveModal;
-    setApproveModal(null);
-    const res = await api.approveRequest(requestId, role);
-    if (res.ok) {
-      setFlash({
-        type: "success",
-        message: `${userName} aprobado como ${role === "admin" ? "administrador" : "empleado"}.`,
-      });
-      setData((d) => ({
-        ...d,
-        pendingRequests: d.pendingRequests.filter((r) => r.id !== requestId),
-      }));
-    } else setFlash({ type: "error", message: res.error });
-  }
-
-  async function handleReject(requestId) {
-    const res = await api.rejectRequest(requestId);
-    if (res.ok) {
-      setFlash({ type: "success", message: "Solicitud rechazada." });
-      setData((d) => ({
-        ...d,
-        pendingRequests: d.pendingRequests.filter((r) => r.id !== requestId),
-      }));
-    } else setFlash({ type: "error", message: res.error });
   }
 
   async function confirmMaintenance() {
@@ -316,62 +287,7 @@ export default function DashboardAdmin({ data: initialData }) {
             </span>
             <p>empleados activos</p>
           </div>
-          <div className="admin-card admin-card-requests">
-            <h3><Icon name="clock" size={16} className="h-icon" /> Solicitudes</h3>
-            <span className="stat-number">{pendingRequests.length}</span>
-            <p>por revisar</p>
-          </div>
         </div>
-
-        {/* Solicitudes pendientes */}
-        {pendingRequests.length > 0 && (
-          <CollapsibleSection
-            title="Solicitudes de membresía pendientes"
-            count={pendingRequests.length}
-            countVariant="badge-warning"
-            defaultOpen
-            className="table-section-warning"
-          >
-            <table>
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Email</th>
-                  <th>Fecha</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingRequests.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.userName}</td>
-                    <td>{r.userEmail}</td>
-                    <td>{new Date(r.createdAt).toLocaleDateString("es-ES")}</td>
-                    <td>
-                      <button
-                        className="button button-outline"
-                        onClick={() =>
-                          setApproveModal({
-                            requestId: r.id,
-                            userName: r.userName,
-                          })
-                        }
-                      >
-                        Aprobar
-                      </button>{" "}
-                      <button
-                        className="button button-danger"
-                        onClick={() => handleReject(r.id)}
-                      >
-                        Rechazar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CollapsibleSection>
-        )}
 
         {/* Vehículos */}
         <CollapsibleSection
@@ -885,44 +801,6 @@ export default function DashboardAdmin({ data: initialData }) {
       </section>
 
       {/* Modales */}
-      {approveModal && (
-        <>
-          <button
-            type="button"
-            className="modal-overlay"
-            aria-label="Cerrar"
-            onClick={() => setApproveModal(null)}
-          />
-          <dialog open className="modal-box">
-            <h3>Aprobar solicitud</h3>
-            <p>
-              ¿Con qué rol quieres añadir a{" "}
-              <strong>{approveModal.userName}</strong>?
-            </p>
-            <div className="modal-actions">
-              <button
-                className="button button-outline"
-                onClick={() => setApproveModal(null)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="button button-outline"
-                onClick={() => confirmApprove("empleado")}
-              >
-                Empleado
-              </button>
-              <button
-                className="button button-primary"
-                onClick={() => confirmApprove("admin")}
-              >
-                Administrador
-              </button>
-            </div>
-          </dialog>
-        </>
-      )}
-
       {endMaintModal && (
         <>
           <button

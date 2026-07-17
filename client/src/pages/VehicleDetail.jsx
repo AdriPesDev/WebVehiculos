@@ -42,8 +42,8 @@ export default function VehicleDetail() {
         setError(res.error);
       } else {
         setData(res);
-        // Carga la encuesta del viaje activo si existe (no aplica en modo solo lectura)
-        if (res.activeTrip?.id_uso && !res.readOnly) {
+        // Carga la encuesta del viaje activo si existe
+        if (res.activeTrip?.id_uso) {
           api.getEncuestaViaje(res.activeTrip.id_uso)
             .then(enc => setSurveyPreguntas(enc?.preguntas || []))
             .catch(() => setSurveyPreguntas([]));
@@ -66,7 +66,7 @@ export default function VehicleDetail() {
   if (error) return <Layout><p className="alert alert-error">{error}</p></Layout>;
   if (!data)  return <Layout><p>Cargando vehículo...</p></Layout>;
 
-  const { vehicle, vehicleTrips = [], company, activeTrip, canManageTrip, companyUsers = [], maintenanceHistory = [], readOnly = false } = data;
+  const { vehicle, vehicleTrips = [], company, activeTrip, canManageTrip, companyUsers = [], maintenanceHistory = [] } = data;
   const states      = vehicle.states || [];
   const isAvailable = states.includes('disponible') && !activeTrip;
   const rol         = user?.rol || user?.role;
@@ -189,14 +189,6 @@ export default function VehicleDetail() {
           <Link to="/dashboard" className="button button-outline"><Icon name="arrowLeft" size={16} /> Volver al panel</Link>
         </div>
 
-        {readOnly && (
-          <Alert
-            type="info"
-            message="Estás viendo este vehículo en modo solo lectura como superadministrador. No puedes registrar viajes ni modificar datos."
-            onClose={() => {}}
-          />
-        )}
-
         {flash && <Alert type={flash.type} message={flash.message} onClose={() => setFlash(null)} />}
 
         {/* ── Tarjetas de info ── */}
@@ -233,12 +225,12 @@ export default function VehicleDetail() {
           )}
         </div>
 
-        {/* ── Checkout (oculto en modo solo lectura) ── */}
-        {!readOnly && isAvailable && (
+        {/* ── Checkout ── */}
+        {isAvailable && (
           <div className="table-section">
             <h3>Registrar salida</h3>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
-              {(rol === 'admin' || rol === 'superadmin') && companyUsers.length > 0 && (
+              {rol === 'admin' && companyUsers.length > 0 && (
                 <div className="field-group">
                   <label htmlFor="checkout-driver">Conductor</label>
                   <select
@@ -275,8 +267,8 @@ export default function VehicleDetail() {
           </div>
         )}
 
-        {/* ── Reset estado (admin, sin viaje activo, oculto en modo solo lectura) ── */}
-        {!readOnly && rol === 'admin' && !isAvailable && !activeTrip && (
+        {/* ── Reset estado (admin, sin viaje activo) ── */}
+        {rol === 'admin' && !isAvailable && !activeTrip && (
           <div className="table-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <p style={{ margin: 0, color: 'var(--muted)' }}>El vehículo aparece como no disponible sin viaje activo registrado.</p>
             <button className="button button-ghost" onClick={() => setResetModal(true)}>
@@ -313,7 +305,7 @@ export default function VehicleDetail() {
                         empleado
                       </span>
                     </span>
-                    {!readOnly && canManageTrip && (
+                    {canManageTrip && (
                       <button
                         className="icon-btn icon-btn-danger"
                         onClick={() => handleRemovePassenger(p.id || p.user_id)}
@@ -328,8 +320,8 @@ export default function VehicleDetail() {
               </ul>
             </div>
 
-            {/* Añadir pasajero (oculto en modo solo lectura) */}
-            {!readOnly && canManageTrip && (
+            {/* Añadir pasajero */}
+            {canManageTrip && (
               <form onSubmit={handleAddPassenger} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-end', marginTop: '0.75rem' }}>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
@@ -378,8 +370,8 @@ export default function VehicleDetail() {
               </form>
             )}
 
-            {/* Checkin (oculto en modo solo lectura) */}
-            {!readOnly && canManageTrip && (
+            {/* Checkin */}
+            {canManageTrip && (
               <div style={{ marginTop: '1.25rem' }}>
                 <button className="button button-outline" onClick={() => setSurveyModal(true)}>
                   Registrar llegada
@@ -451,7 +443,7 @@ export default function VehicleDetail() {
       </section>
 
       {/* ── Modal: restablecer estado ── */}
-      {!readOnly && resetModal && (
+      {resetModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setResetModal(false)} />
           <dialog open className="modal-box" aria-labelledby="reset-modal-title">
@@ -466,7 +458,7 @@ export default function VehicleDetail() {
       )}
 
       {/* ── Modal: encuesta de llegada ── */}
-      {!readOnly && surveyModal && (
+      {surveyModal && (
         <>
           <button type="button" className="modal-overlay" aria-label="Cerrar" onClick={() => setSurveyModal(false)} />
           <dialog open className="modal-box modal-survey" aria-labelledby="survey-title">

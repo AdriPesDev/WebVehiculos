@@ -5,9 +5,8 @@ import Icon from './icons';
 
 const GLOBAL_VALUE = '__global__';
 
-export default function SurveyBuilderModal({ open, onClose, companyVehicles, companyUsers = [], onSurveyCreated, isSuperadmin = false, companies = [] }) {
+export default function SurveyBuilderModal({ open, onClose, companyVehicles, companyUsers = [], onSurveyCreated }) {
   const [step, setStep] = useState(1);
-  const [selectedCompanyId, setSelectedCompanyId] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,17 +19,12 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
 
   function resetForm() {
     setStep(1);
-    setSelectedCompanyId('');
     setSelectedVehicleId('');
     setQuestions([]);
     setError(null);
     setEditingOptions(null);
     setEditingAdmins(null);
   }
-
-  const vehiclesForStep = isSuperadmin && selectedCompanyId
-    ? companyVehicles.filter(v => v.company_id === selectedCompanyId)
-    : companyVehicles;
 
   function handleClose() {
     resetForm();
@@ -205,21 +199,6 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
 
           {step === 1 ? (
             <>
-              {isSuperadmin && (
-                <div className="field">
-                  <label htmlFor="company-select">Selecciona una empresa</label>
-                  <select
-                    id="company-select"
-                    value={selectedCompanyId}
-                    onChange={(e) => setSelectedCompanyId(e.target.value)}
-                  >
-                    <option value="">-- Elige una empresa --</option>
-                    {companies.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
               <div className="field">
                 <label htmlFor="vehicle-select">Selecciona un vehículo</label>
                 <select
@@ -229,7 +208,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
                 >
                   <option value="">-- Elige un vehículo --</option>
                   <option value={GLOBAL_VALUE}>Global (todos los vehículos)</option>
-                  {vehiclesForStep.map((v) => (
+                  {companyVehicles.map((v) => (
                     <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
                   ))}
                 </select>
@@ -424,7 +403,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
               type="button"
               onClick={() => setStep(2)}
               className="modal-button modal-button-primary"
-              disabled={(isSuperadmin && !selectedCompanyId) || !selectedVehicleId || loading}
+              disabled={!selectedVehicleId || loading}
             >
               Siguiente
             </button>
@@ -450,6 +429,4 @@ SurveyBuilderModal.propTypes = {
   companyVehicles: PropTypes.array.isRequired,
   companyUsers: PropTypes.array,
   onSurveyCreated: PropTypes.func.isRequired,
-  isSuperadmin: PropTypes.bool,
-  companies: PropTypes.array,
 };
