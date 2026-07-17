@@ -24,7 +24,18 @@ export default function Dropdown({
   const place = useCallback(() => {
     if (!triggerRef.current) return;
     const r = triggerRef.current.getBoundingClientRect();
-    setCoords({ left: r.left, top: r.bottom + 6, width: Math.max(r.width, minWidth) });
+    const spaceBelow = window.innerHeight - r.bottom - 6;
+    const spaceAbove = r.top - 6;
+    // Si no cabe debajo pero sí arriba, abre hacia arriba; si no, se recorta
+    // con overflow-y para seguir siendo scrolleable dentro del viewport.
+    const openUp = spaceBelow < 150 && spaceAbove > spaceBelow;
+    setCoords({
+      left: r.left,
+      top: openUp ? undefined : r.bottom + 6,
+      bottom: openUp ? window.innerHeight - r.top + 6 : undefined,
+      width: Math.max(r.width, minWidth),
+      maxHeight: Math.max(120, Math.min(280, openUp ? spaceAbove : spaceBelow)),
+    });
   }, [minWidth]);
 
   useEffect(() => {
@@ -69,7 +80,14 @@ export default function Dropdown({
           ref={menuRef}
           className="dropdown-menu"
           role="listbox"
-          style={{ position: 'fixed', left: coords.left, top: coords.top, minWidth: coords.width }}
+          style={{
+            position: 'fixed',
+            left: coords.left,
+            top: coords.top,
+            bottom: coords.bottom,
+            minWidth: coords.width,
+            maxHeight: coords.maxHeight,
+          }}
         >
           {options.map((o) => (
             <li key={String(o.value)} role="option" aria-selected={o.value === value}>

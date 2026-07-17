@@ -7,6 +7,7 @@ import Badge from '../components/Badge';
 import Alert from '../components/Alert';
 import Icon from '../components/icons';
 import CollapsibleSection from '../components/CollapsibleSection';
+import Dropdown from '../components/Dropdown';
 
 function duration(start, end) {
   if (!start) return '—';
@@ -23,12 +24,13 @@ export default function VehicleDetail() {
   const [error, setError]             = useState(null);
   const [flash, setFlash]             = useState(null);
 
-  const [destination, setDestination]       = useState('');
   const [checkoutDriverId, setCheckoutDriverId] = useState('');
   const [passengerMode, setPassengerMode]   = useState('employee');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [freeName, setFreeName]             = useState('');
   const [addingPassenger, setAddingPassenger] = useState(false);
+
+  const [filtroConductor, setFiltroConductor] = useState('');
 
   const [surveyModal, setSurveyModal]     = useState(false);
   const [surveyPreguntas, setSurveyPreguntas] = useState([]);
@@ -74,12 +76,21 @@ export default function VehicleDetail() {
     ? [...vehicleTrips].sort((a, b) => new Date(b.checkoutTime) - new Date(a.checkoutTime))[0]
     : null;
 
+  const conductoresHistorial = [...new Set(vehicleTrips.map(t => t.driverName).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'es'));
+  const opcionesConductor = [
+    { value: '', label: 'Todos los conductores' },
+    ...conductoresHistorial.map(n => ({ value: n, label: n })),
+  ];
+  const vehicleTripsFiltrados = filtroConductor
+    ? vehicleTrips.filter(t => t.driverName === filtroConductor)
+    : vehicleTrips;
+
   // ── Checkout ────────────────────────────────────────────────────────────────
   async function handleCheckout() {
     const res = await api.checkout(vehicle.id);
     if (res.ok) {
       setFlash({ type: 'success', message: 'Vehículo en uso.' });
-      setDestination('');
       setCheckoutDriverId('');
       await cargarDetalle();
     } else {
@@ -248,18 +259,6 @@ export default function VehicleDetail() {
                   </select>
                 </div>
               )}
-              <div className="field-group">
-                <label htmlFor="checkout-dest">Destino</label>
-                <input
-                  id="checkout-dest"
-                  type="text"
-                  className="input-inline"
-                  placeholder="Ciudad o dirección (opcional)"
-                  value={destination}
-                  onChange={e => setDestination(e.target.value)}
-                  style={{ minWidth: 200 }}
-                />
-              </div>
               <button className="button button-primary" onClick={handleCheckout}>
                 Registrar salida
               </button>
@@ -388,14 +387,32 @@ export default function VehicleDetail() {
               {rol === 'empleado' ? 'No tienes viajes registrados en este vehículo.' : 'Sin viajes registrados.'}
             </p>
           ) : (
-            <table>
+            <>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <Dropdown
+                  ariaLabel="Filtrar por conductor"
+                  placeholder="Todos los conductores"
+                  value={filtroConductor}
+                  onChange={setFiltroConductor}
+                  options={opcionesConductor}
+                  minWidth={220}
+                />
+              </div>
+              <table>
               <thead>
                 <tr>
                   <th>Conductor</th><th>Salida</th><th>Entrada</th><th>Duración</th><th>Pasajeros</th><th>Estado</th>
                 </tr>
               </thead>
               <tbody>
-                {vehicleTrips.map(t => (
+                {vehicleTripsFiltrados.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '1.5rem' }}>
+                      Ningún viaje coincide con el filtro.
+                    </td>
+                  </tr>
+                )}
+                {vehicleTripsFiltrados.map(t => (
                   <tr key={t.id}>
                     <td>{t.driverName}</td>
                     <td>{t.checkoutTime ? new Date(t.checkoutTime).toLocaleString('es-ES') : '—'}</td>
@@ -414,7 +431,8 @@ export default function VehicleDetail() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </>
           )}
         </CollapsibleSection>
 

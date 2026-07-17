@@ -20,6 +20,8 @@
 }
 
 :root {
+  color-scheme: light;
+
   /* Paleta corporativa Nethive (ver NethivePortal DESIGN.md) */
   --bg: #F7F8F9;          /* paper */
   --surface: #ffffff;
@@ -60,6 +62,8 @@
 }
 
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   --bg: var(--comb);
   --surface: var(--comb-2);
   --surface-2: var(--comb-3);
@@ -617,15 +621,6 @@ tbody tr:hover {
   border-color: var(--danger-border);
 }
 
-/* ---- Footer ---- */
-.footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 1.5rem 0;
-  text-align: center;
-  color: var(--muted);
-}
-
 /* ---- Responsive ---- */
 @media (max-width: 800px) {
   .topbar-content {
@@ -1153,7 +1148,7 @@ dialog.drawer::backdrop {
 }
 
 .drawer-close:hover {
-  background: #f1f5f9;
+  background: var(--surface-2);
   color: var(--text);
 }
 
@@ -1246,7 +1241,7 @@ dialog.drawer::backdrop {
 }
 
 .modal-button-primary:hover {
-  background: #1585b3;
+  background: var(--accent-deep);
 }
 
 .modal-button-outline {
@@ -1260,13 +1255,13 @@ dialog.drawer::backdrop {
 }
 
 .modal-button-danger {
-  background: #fbeae8;
-  border: 1px solid #f0c4bf;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
   color: var(--danger);
 }
 
 .modal-button-danger:hover {
-  background: #f6d6d1;
+  background: var(--danger-border);
 }
 
 .modal-button:disabled {

@@ -43,25 +43,15 @@ export default function Header() {
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
           </button>
           {user && (
-            <>
-              <Link
-                to="/dashboard"
-                className="topbar-icon-btn"
-                title="Panel"
-                aria-label="Ir al panel"
-              >
-                <Icon name="grid" />
-              </Link>
-              <button
-                type="button"
-                className="topbar-icon-btn"
-                onClick={handleLogout}
-                title="Cerrar sesión"
-                aria-label="Cerrar sesión"
-              >
-                <Icon name="logout" />
-              </button>
-            </>
+            <button
+              type="button"
+              className="topbar-icon-btn"
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              aria-label="Cerrar sesión"
+            >
+              <Icon name="logout" />
+            </button>
           )}
         </nav>
       </div>

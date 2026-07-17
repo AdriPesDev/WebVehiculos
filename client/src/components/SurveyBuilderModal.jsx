@@ -192,7 +192,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
           {error && (
-            <div style={{ padding: '0.75rem', background: '#FBEAE8', border: '1px solid #F0C4BF', borderRadius: '0.25rem', marginBottom: '1rem', color: '#D85B4A', fontSize: '0.9rem' }}>
+            <div style={{ padding: '0.75rem', background: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: '0.25rem', marginBottom: '1rem', color: 'var(--danger-text)', fontSize: '0.9rem' }}>
               {error}
             </div>
           )}
@@ -246,14 +246,14 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
                             value={q.text}
                             onChange={(e) => updateQuestion(q.tempId, 'text', e.target.value)}
                             placeholder="Pregunta"
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--accent)', borderRadius: '0.25rem', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--accent)', borderRadius: '0.25rem', fontSize: '0.9rem', boxSizing: 'border-box', background: 'var(--surface)', color: 'var(--text)' }}
                           />
                         </td>
                         <td>
                           <select
                             value={q.type}
                             onChange={(e) => updateQuestion(q.tempId, 'type', e.target.value)}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--accent)', borderRadius: '0.25rem', fontSize: '0.85rem' }}
+                            style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--accent)', borderRadius: '0.25rem', fontSize: '0.85rem', background: 'var(--surface)', color: 'var(--text)' }}
                           >
                             <option value="text">Texto</option>
                             <option value="number">Número</option>
@@ -324,7 +324,7 @@ export default function SurveyBuilderModal({ open, onClose, companyVehicles, com
                         value={opt}
                         onChange={(e) => updateOption(editingOptions, idx, e.target.value)}
                         placeholder={`Opción ${idx + 1}`}
-                        style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.25rem', fontSize: '0.85rem' }}
+                        style={{ flex: 1, padding: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.25rem', fontSize: '0.85rem', background: 'var(--surface)', color: 'var(--text)' }}
                       />
                       <button
                         type="button"

@@ -104,6 +104,7 @@ const s = {
     gap: "0.5rem",
     background: "transparent",
     border: "2px solid var(--border)",
+    color: "var(--text)",
     borderRadius: "0.75rem",
     padding: "1rem 2rem",
     fontSize: "1.1rem",
@@ -411,12 +412,18 @@ export default function Kiosko() {
     }
   }
 
+  // Plazas del vehículo menos el asiento del conductor.
+  const maxPasajeros = vehiculoSel?.capacidad
+    ? Math.max(0, vehiculoSel.capacidad - 1)
+    : Infinity;
+
   function togglePasajero(u) {
-    setPasajerosSel((prev) =>
-      prev.some((p) => p.id_usuario === u.id_usuario)
-        ? prev.filter((p) => p.id_usuario !== u.id_usuario)
-        : [...prev, u],
-    );
+    setPasajerosSel((prev) => {
+      const yaSeleccionado = prev.some((p) => p.id_usuario === u.id_usuario);
+      if (yaSeleccionado) return prev.filter((p) => p.id_usuario !== u.id_usuario);
+      if (prev.length >= maxPasajeros) return prev;
+      return [...prev, u];
+    });
   }
 
   // Validación encuesta: obligatorias cubiertas
@@ -725,27 +732,34 @@ export default function Kiosko() {
             <p style={{ color: "var(--muted)", marginTop: 0 }}>
               Pulsa los nombres para seleccionar. Pulsa de nuevo para
               deseleccionar.
+              {Number.isFinite(maxPasajeros) && (
+                <> Máximo {maxPasajeros} pasajero{maxPasajeros === 1 ? "" : "s"} ({pasajerosSel.length}/{maxPasajeros}).</>
+              )}
             </p>
             <div style={s.grid}>
               {usuarios
                 .filter((u) => u.id_usuario !== conductorSel?.id_usuario)
-                .map((u) => (
-                  <div
-                    key={u.id_usuario}
-                    style={s.card(
-                      pasajerosSel.some((p) => p.id_usuario === u.id_usuario),
-                      "var(--accent)",
-                    )}
-                    onClick={() => togglePasajero(u)}
-                  >
-                    <span style={s.cardTitle}>{u.nombre}</span>
-                    <span style={s.cardSub}>
-                      {pasajerosSel.some((p) => p.id_usuario === u.id_usuario)
-                        ? <><Icon name="check" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />Seleccionado</>
-                        : "Pulsar para añadir"}
-                    </span>
-                  </div>
-                ))}
+                .map((u) => {
+                  const seleccionado = pasajerosSel.some((p) => p.id_usuario === u.id_usuario);
+                  const lleno = !seleccionado && pasajerosSel.length >= maxPasajeros;
+                  return (
+                    <div
+                      key={u.id_usuario}
+                      style={{
+                        ...s.card(seleccionado, "var(--accent)"),
+                        ...(lleno ? { opacity: 0.5, cursor: "not-allowed" } : {}),
+                      }}
+                      onClick={() => !lleno && togglePasajero(u)}
+                    >
+                      <span style={s.cardTitle}>{u.nombre}</span>
+                      <span style={s.cardSub}>
+                        {seleccionado
+                          ? <><Icon name="check" size={14} style={{ verticalAlign: "-2px", marginRight: "0.3rem" }} />Seleccionado</>
+                          : lleno ? "Sin plazas libres" : "Pulsar para añadir"}
+                      </span>
+                    </div>
+                  );
+                })}
             </div>
             {pasajerosSel.length > 0 && (
               <p style={{ marginTop: "0.75rem", fontWeight: 600 }}>
