@@ -45,7 +45,11 @@ export default function Dropdown({
       if (triggerRef.current?.contains(e.target) || menuRef.current?.contains(e.target)) return;
       setOpen(false);
     };
-    const onScrollResize = () => setOpen(false);
+    const onScrollResize = (e) => {
+      // Ignora el scroll dentro del propio menú (scrolleable con overflow-y).
+      if (menuRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', onOutside);
     window.addEventListener('scroll', onScrollResize, true);
