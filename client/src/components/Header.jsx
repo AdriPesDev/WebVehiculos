@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import BrandLogo from './BrandLogo';
 import Icon from './icons';
 
+const PORTAL_URL = import.meta.env.VITE_PORTAL_URL || 'http://localhost:5173';
+
 export default function Header() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
@@ -43,15 +45,26 @@ export default function Header() {
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
           </button>
           {user && (
-            <button
-              type="button"
-              className="topbar-icon-btn"
-              onClick={handleLogout}
-              title="Cerrar sesión"
-              aria-label="Cerrar sesión"
-            >
-              <Icon name="logout" />
-            </button>
+            <>
+              <a
+                href={PORTAL_URL}
+                target="nethive-portal"
+                className="topbar-icon-btn"
+                title="Ir al portal"
+                aria-label="Ir al portal"
+              >
+                <Icon name="globe" />
+              </a>
+              <button
+                type="button"
+                className="topbar-icon-btn"
+                onClick={handleLogout}
+                title="Cerrar sesión"
+                aria-label="Cerrar sesión"
+              >
+                <Icon name="logout" />
+              </button>
+            </>
           )}
         </nav>
       </div>
