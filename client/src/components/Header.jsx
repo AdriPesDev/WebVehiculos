@@ -49,6 +49,13 @@ export default function Header() {
               <a
                 href={PORTAL_URL}
                 target="nethive-portal"
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Reengancha con la pestaña del portal y cierra esta; si el
+                  // popup se bloquea, cae a la navegación normal del enlace.
+                  if (window.open(PORTAL_URL, "nethive-portal")) window.close();
+                  else window.location.href = PORTAL_URL;
+                }}
                 className="topbar-icon-btn"
                 title="Ir al portal"
                 aria-label="Ir al portal"
